@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 import shutil
 import time
@@ -11,6 +12,7 @@ from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.datastructures import UploadFile as FormFile
 from fastapi.staticfiles import StaticFiles
 
 from app import pipeline
@@ -76,7 +78,9 @@ def create_app(
     async def guard(request: Request, call_next):
         # Browsers cannot add a custom header to a cross-site request without our consent,
         # so requiring one on every change stops other websites from driving this app.
-        if request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get("x-requested-with") != "knit-import":
+        # /api/share is called by an iPhone Shortcut, not a browser. It checks its own secret instead.
+        if (request.method not in ("GET", "HEAD", "OPTIONS") and request.url.path != "/api/share"
+                and request.headers.get("x-requested-with") != "knit-import"):
             return JSONResponse({"detail": "Reload the page and try again."}, status_code=403)
         response: Response = await call_next(request)
         response.headers["Content-Security-Policy"] = (
@@ -270,6 +274,15 @@ def create_app(
                 loaded.append((name, b""))  # reported below as too big
                 continue
             loaded.append((name, data))
+        accepted, rejected, problem = await ingest(d, meta, loaded)
+        out = view(d, d.load())
+        out["accepted"] = accepted
+        out["rejected"] = rejected
+        out["problem"] = problem
+        return out
+
+    async def ingest(d: Draft, meta: dict, loaded: list[tuple[str, bytes]]) -> tuple[list[dict], list[dict], str]:
+        """Check each file, keep the good ones, and read the pattern once there is a PDF."""
         # PDFs first, so the page file can be matched against it.
         loaded.sort(key=lambda item: 0 if item[1][:5] == b"%PDF-" else 1)
 
@@ -317,11 +330,72 @@ def create_app(
                 meta.get("verification", {}).pop("pdf", None)
                 meta["status"] = "manual"
             d.save(meta)
-        out = view(d, d.load())
-        out["accepted"] = accepted
-        out["rejected"] = rejected
-        out["problem"] = problem
-        return out
+        return accepted, rejected, problem
+
+    # ------------------------------------------------------------------ share from Safari
+    def share_reply(status: int, message: str, draft_id: str = "") -> JSONResponse:
+        # A Shortcut shows `message` when `open` is empty, and opens `open` in Safari when it is not.
+        open_url = f"{settings.importer_public_url}?draft={draft_id}" if draft_id else ""
+        return JSONResponse({"ok": bool(draft_id), "open": open_url, "message": message}, status_code=status)
+
+    @app.post("/api/share")
+    async def share(request: Request):
+        """Takes a page Mary already has open in Safari, sent by a Shortcut, and makes a draft of it.
+
+        Nothing is fetched from the pattern site here: the page and the PDF come from her own browser.
+        Nothing is added to the library either. She checks the draft in the normal page and adds it there.
+        Form fields: url (text), html (text or file), pdf (file, optional). Header: Authorization: Bearer <SHARE_TOKEN>.
+        """
+        if not settings.share_token:
+            return share_reply(404, "Sharing is switched off on this importer.")
+        auth = request.headers.get("authorization", "")
+        given = auth[7:].strip() if auth[:7].lower() == "bearer " else ""
+        if not given or not hmac.compare_digest(given.encode(), settings.share_token.encode()):
+            return share_reply(401, "The Shortcut's key does not match this importer. Check the key in the Shortcut.")
+
+        limit = settings.max_upload_mb * 1_000_000
+        if int(request.headers.get("content-length") or 0) > 2 * limit + 100_000:
+            return share_reply(413, f"That is too big. Pages and PDFs up to {settings.max_upload_mb} MB are accepted.")
+        try:
+            form = await request.form(max_files=3, max_fields=6, max_part_size=limit)
+        except Exception as exc:  # malformed or oversized form
+            log.warning("Share form rejected: %r", exc)
+            return share_reply(400, "The Shortcut sent something the importer could not read.")
+
+        async def field_bytes(name: str) -> bytes:
+            value = form.get(name)
+            if isinstance(value, FormFile):
+                return await value.read(limit + 1)
+            return str(value or "").encode("utf-8")
+
+        url = str(form.get("url") or "").strip()[:2000]
+        html = await field_bytes("html")
+        pdf = await field_bytes("pdf")
+        await form.close()
+        try:
+            ref = parse_pattern_link(url, settings)
+        except BadLink:
+            return share_reply(422, "Only DROPS pattern pages can be shared for now. Open the pattern on garnstudio.com and share that page.")
+        if not html.strip() and not pdf.strip():
+            return share_reply(422, "Nothing arrived from the page. Try sharing it again.")
+
+        # An empty field is left out. One over the limit goes in empty, which ingest() reports as too big.
+        loaded = [(n, b if len(b) <= limit else b"") for n, b in (("pattern.pdf", pdf), ("page.html", html)) if b.strip()]
+        draft = store.create(pipeline.init_manual_meta(url, ref, {"code": "shared", "message": ""}))
+        meta = draft.load()
+        meta["status"] = "manual"
+        draft.save(meta)
+        accepted, rejected, problem = await ingest(draft, meta, loaded)
+        if not accepted:
+            store.delete(draft.id)
+            first = rejected[0]["verdict"] if rejected else {}
+            return share_reply(422, " ".join(x for x in (first.get("headline", ""), first.get("advice", "")) if x) or "The page could not be used.")
+        meta = draft.load()
+        if problem:
+            return share_reply(200, "The page arrived, but the pattern could not be read from the PDF. Opening it so you can add a PDF.", draft.id)
+        if meta.get("status") == "ready":
+            return share_reply(200, "Pattern received. Opening it to check.", draft.id)
+        return share_reply(200, "The page arrived. Opening it so you can add the PDF.", draft.id)
 
     # ------------------------------------------------------------------ check stage
     @app.patch("/api/drafts/{draft_id}")

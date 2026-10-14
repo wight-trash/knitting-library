@@ -57,6 +57,7 @@ services:
       DROPS_MIN_INTERVAL: "3"
       DROPS_CONTACT: ""
       DRAFT_TTL_HOURS: "24"
+      SHARE_TOKEN: ${SHARE_TOKEN:-}                 # "Share from Safari" key; empty switches it off. See importer/SHARE-FROM-IPHONE.md
     volumes:
       - /mnt/tank/configs/knit-import-dev:/data
     ports:

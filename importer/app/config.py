@@ -42,6 +42,9 @@ class Settings:
     # PDF rendering for the "paste a link" route
     chromium_path: str = "/usr/bin/chromium"
 
+    # "Share from Safari": the secret an iPhone Shortcut sends to POST /api/share. Empty switches sharing off.
+    share_token: str = ""
+
     # Extra hosts allowed in test setups
     extra_allowed_hosts: tuple[str, ...] = field(default_factory=tuple)
 
@@ -68,6 +71,13 @@ class Settings:
     def public_url(self) -> str:
         return (self.kl_public_url or self.kl_url).rstrip("/")
 
+    @property
+    def importer_public_url(self) -> str:
+        """Where a browser opens the importer page: the library's address plus the base path."""
+        from app.basepath import clean_base_path
+
+        return f"{self.public_url}{clean_base_path(self.base_path)}/"
+
 
 def load_settings() -> Settings:
     env = os.environ.get
@@ -90,5 +100,6 @@ def load_settings() -> Settings:
         drops_cache_hours=int(env("DROPS_CACHE_HOURS", "24")),
         drops_fetch_enabled=_bool("DROPS_FETCH_ENABLED", True),
         chromium_path=env("CHROMIUM_PATH", "/usr/bin/chromium"),
+        share_token=env("SHARE_TOKEN", "").strip(),
         extra_allowed_hosts=tuple(h.strip() for h in env("EXTRA_ALLOWED_HOSTS", "").split(",") if h.strip()),
     )

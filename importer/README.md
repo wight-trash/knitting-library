@@ -61,6 +61,7 @@ Environment variables.
 | `DROPS_DEFAULT_CID` | `19` | Catalogue used when a link has none (19 is English, UK, cm and grams) |
 | `MAX_UPLOAD_MB` | `50` | Knitting Library refuses PDFs above 50 MB |
 | `CHROMIUM_PATH` | `/usr/bin/chromium` | The browser that makes the PDF |
+| `SHARE_TOKEN` | none | Key for "Share from Safari" (`POST /api/share`). Empty switches it off. See `SHARE-FROM-IPHONE.md` |
 
 ## How it behaves towards DROPS
 
