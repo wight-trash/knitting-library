@@ -3,7 +3,7 @@
 # Stage 2: Final image — Python/uvicorn serves both API and React frontend directly.
 # No nginx — eliminates all nginx permission issues across different host UIDs.
 
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY app/frontend/package.json app/frontend/package-lock.json ./
 RUN npm ci --legacy-peer-deps
@@ -13,7 +13,7 @@ COPY app/frontend/ .
 # No external font downloads needed — they are included in node_modules.
 RUN npm run build
 
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/ZeetLex/knitting-library"
 
@@ -44,7 +44,7 @@ COPY app/backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip uninstall -y wheel \
-    && find /usr/local/lib/python3.12/site-packages/setuptools/_vendor -name "wheel-*.dist-info" -exec rm -rf {} + 2>/dev/null; true \
+    && find /usr/local/lib/python3.14/site-packages/setuptools/_vendor -name "wheel-*.dist-info" -exec rm -rf {} + 2>/dev/null; true \
     && pip install --no-cache-dir --no-deps "wheel==0.46.2" \
     && pip uninstall -y pip \
     && apk del gcc musl-dev binutils \
