@@ -15,7 +15,8 @@ The `jeff` branch is upstream `main` plus a few things on top.
 | `.github/workflows/` | Image builds for both apps, and a weekly upstream check. |
 | `sync-upstream.sh` | Keeps the `jeff` branch in step with upstream. |
 
-Only the three patch commits touch upstream files. Everything else is new files, so it cannot conflict with upstream.
+The three patch commits above touch upstream files, and so do the package updates (see "Package updates"
+below). Everything else is new files, so it cannot conflict with upstream.
 
 ## Branches
 
@@ -61,6 +62,42 @@ git push --force-with-lease origin jeff
 The weekly workflow runs the check and fails if the rebase would conflict. GitHub emails you about failed runs. The push builds new images. Then update the stack in Arcane.
 
 If a rebase stops on a conflict, git names the file. Keep upstream's new code, put the patch's lines back, then `git add` and `git rebase --continue`.
+
+## Package updates
+
+The fork runs newer packages than upstream. These commits change upstream files, so they are the ones most
+likely to conflict on a sync:
+
+| What | Files | Notes |
+| --- | --- | --- |
+| Backend packages, Python 3.14, Node 24 | `app/backend/requirements.txt`, `Dockerfile` | bcrypt held at 4.3.0 (see below) |
+| Unused frontend packages removed | `app/frontend/package.json`, `package-lock.json` | `ajv`, `react-pdf`, `react-dropzone` were never imported |
+| Vite 8, React 19, lucide-react 0.577 | same | lucide-react 1.x dropped the GitHub icon the app uses |
+
+The importer's packages are ours alone and never conflict.
+
+**If a sync conflicts in `package-lock.json`,** do not merge it by hand. Take upstream's `package.json`, put our
+version numbers back, then regenerate the lock file and continue:
+
+```
+cd app/frontend && npx npm@11 install --legacy-peer-deps && cd ../..
+git add app/frontend/package.json app/frontend/package-lock.json && git rebase --continue
+```
+
+Once upstream reaches the same versions, our commits become empty and drop out of the rebase.
+
+**bcrypt stays on 4.x.** bcrypt 5 raises an error for passwords longer than 72 bytes, in `checkpw` as well as
+`hashpw` (tested). Knitting Library treats the error as a wrong password, so anyone with a longer password,
+possibly the `importer` account, could no longer sign in. Moving to 5 needs `_hash_password` and
+`_verify_password` to cut the password to 72 bytes first, as bcrypt 4 did silently. That belongs upstream.
+
+**Checks before anything is published.** Both image workflows build the image, test it, and only then push:
+the library image runs `.github/scripts/kl-smoke.py` (sign-in, PDF upload, page pictures), the importer image
+runs `python -m app.selfcheck` (Chromium prints a PDF, poppler reads it).
+
+**Weekly updates.** `.github/dependabot.yml` asks for update pull requests against `dev` for every package list,
+base image and workflow action. Dependabot reads that file only from the default branch, so it is off while the
+default branch is `main`.
 
 ## Tell upstream
 
