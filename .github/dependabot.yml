@@ -1,28 +1,28 @@
-# Weekly update pull requests for every package list and base image in the fork, aimed at dev.
-# Dependabot only reads this file from the repository's default branch, so it does nothing while
-# the default branch is main (a plain copy of upstream). Make jeff the default branch to switch it on.
+# Monthly update pull requests for every package list, base image and workflow action, aimed at dev.
+# Dependabot reads this file from the repository's default branch, which is jeff.
 #
 # Minor and patch updates are grouped into one pull request per folder; major versions come one by one.
-# Merge into dev, let the image builds and smoke tests run, try the dev stack, then promote to jeff.
+# Each pull request runs the tests and image checks (results show on the pull request). Merge the green ones
+# into dev, try the dev stack, then promote to jeff.
 version: 2
 
 updates:
   - package-ecosystem: pip
     directory: /importer
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
     groups:
       importer-minor: { update-types: [minor, patch] }
 
   - package-ecosystem: docker
     directory: /importer
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
 
   - package-ecosystem: pip
     directory: /app/backend
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
     groups:
       backend-minor: { update-types: [minor, patch] }
     ignore:
@@ -34,7 +34,7 @@ updates:
   - package-ecosystem: npm
     directory: /app/frontend
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
     groups:
       frontend-minor: { update-types: [minor, patch] }
     ignore:
@@ -45,9 +45,9 @@ updates:
   - package-ecosystem: docker
     directory: /
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
 
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: monthly }
