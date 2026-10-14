@@ -47,3 +47,6 @@ CHANGELOG.md
 changelog.md
 CHANGES-unreleased.md
 changes-unreleased.md
+
+# Private test patterns and reference guides (copyrighted, never commit)
+/testdata-private/
