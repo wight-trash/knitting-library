@@ -5,54 +5,198 @@
   "description": "A knitting pattern turned into a guided structure. Draft 0.1 for Phase 0. Values are copied exactly as written in the pattern; nothing is converted or calculated here. Written to fit strict structured outputs: every object lists all its properties as required and forbids others; optional values use null.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "pattern", "options", "size_guide", "gauge", "needles", "yarns", "notions", "abbreviations", "techniques", "charts", "sections", "links", "doubts"],
+  "required": [
+    "schema_version",
+    "pattern",
+    "options",
+    "size_guide",
+    "gauge",
+    "needles",
+    "yarns",
+    "notions",
+    "abbreviations",
+    "techniques",
+    "charts",
+    "sections",
+    "links",
+    "doubts"
+  ],
   "properties": {
-    "schema_version": { "type": "string", "enum": ["0.1"] },
-    "pattern": { "$ref": "#/$defs/pattern" },
-    "options": { "$ref": "#/$defs/options" },
-    "size_guide": { "$ref": "#/$defs/size_guide" },
-    "gauge": { "type": "array", "items": { "$ref": "#/$defs/gauge" } },
-    "needles": { "type": "array", "items": { "$ref": "#/$defs/needle" } },
-    "yarns": { "type": "array", "items": { "$ref": "#/$defs/yarn" } },
-    "notions": { "type": "array", "items": { "$ref": "#/$defs/notion" } },
-    "abbreviations": { "type": "array", "items": { "$ref": "#/$defs/abbreviation" } },
-    "techniques": { "type": "array", "items": { "$ref": "#/$defs/technique" } },
-    "charts": { "type": "array", "items": { "$ref": "#/$defs/chart" } },
-    "sections": { "type": "array", "items": { "$ref": "#/$defs/section" } },
-    "links": { "type": "array", "items": { "$ref": "#/$defs/link" } },
-    "doubts": { "type": "array", "items": { "$ref": "#/$defs/doubt" } }
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "0.1"
+      ]
+    },
+    "pattern": {
+      "$ref": "#/$defs/pattern"
+    },
+    "options": {
+      "$ref": "#/$defs/options"
+    },
+    "size_guide": {
+      "$ref": "#/$defs/size_guide"
+    },
+    "gauge": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gauge"
+      }
+    },
+    "needles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/needle"
+      }
+    },
+    "yarns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/yarn"
+      }
+    },
+    "notions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/notion"
+      }
+    },
+    "abbreviations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/abbreviation"
+      }
+    },
+    "techniques": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/technique"
+      }
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chart"
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "doubts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/doubt"
+      }
+    }
   },
   "$defs": {
     "source": {
       "description": "Where in the pattern this came from. quote is copied word for word (short: the key words, not whole pages).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["page", "quote", "from_picture"],
+      "required": [
+        "page",
+        "quote",
+        "from_picture"
+      ],
       "properties": {
-        "page": { "type": ["integer", "null"], "description": "1-based PDF page number" },
-        "quote": { "type": "string" },
-        "from_picture": { "type": "boolean", "description": "True when read from an image (chart, schematic, scanned page) rather than the text layer" }
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "1-based PDF page number"
+        },
+        "quote": {
+          "type": "string"
+        },
+        "from_picture": {
+          "type": "boolean",
+          "description": "True when read from an image (chart, schematic, scanned page) rather than the text layer"
+        }
       }
     },
     "unit": {
-      "type": ["string", "null"],
-      "enum": ["stitches", "rows", "rounds", "row_pairs", "times", "cm", "mm", "in", "m", "yd", "g", "oz", "balls", "skeins", "other", null]
+      "anyOf": [
+        {
+          "enum": [
+            "stitches",
+            "rows",
+            "rounds",
+            "row_pairs",
+            "times",
+            "cm",
+            "mm",
+            "in",
+            "m",
+            "yd",
+            "g",
+            "oz",
+            "balls",
+            "skeins",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "choice_values": {
       "description": "One entry per size, in the order of options.sizes. A string exactly as written (\"4½\", \"three\", \"65-70\", \"0\"), \"-\" when the pattern says it does not apply to that size, or null when the pattern gives no value.",
       "type": "array",
-      "items": { "type": ["string", "null"] }
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
     },
     "sized_value": {
       "description": "A number that may differ by size and by an extra choice. Use exactly one of: all (same for every size), by_size, or by_choice (when it also depends on an extra choice such as yarn weight).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["text", "unit", "all", "by_size", "by_choice"],
+      "required": [
+        "text",
+        "unit",
+        "all",
+        "by_size",
+        "by_choice"
+      ],
       "properties": {
-        "text": { "type": "string", "description": "The original text, for example \"92-96-100-108 sts\" or \"13 (15, 17, 19, 21)\"" },
-        "unit": { "$ref": "#/$defs/unit" },
-        "all": { "type": ["string", "null"] },
-        "by_size": { "anyOf": [{ "$ref": "#/$defs/choice_values" }, { "type": "null" }] },
+        "text": {
+          "type": "string",
+          "description": "The original text, for example \"92-96-100-108 sts\" or \"13 (15, 17, 19, 21)\""
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "all": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "by_size": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/choice_values"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "by_choice": {
           "anyOf": [
             {
@@ -60,50 +204,162 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["choice", "by_size"],
+                "required": [
+                  "choice",
+                  "by_size"
+                ],
                 "properties": {
-                  "choice": { "type": "string", "description": "An id from options.choices[].values[].id" },
-                  "by_size": { "$ref": "#/$defs/choice_values" }
+                  "choice": {
+                    "type": "string",
+                    "description": "An id from options.choices[].values[].id"
+                  },
+                  "by_size": {
+                    "$ref": "#/$defs/choice_values"
+                  }
                 }
               }
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         }
       }
     },
     "applies_to": {
-      "description": "Which sizes and extra choices this applies to. null means all.",
-      "type": ["object", "null"],
-      "additionalProperties": false,
-      "required": ["sizes", "choices"],
-      "properties": {
-        "sizes": { "type": ["array", "null"], "items": { "type": "string" } },
-        "choices": { "type": ["array", "null"], "items": { "type": "string" } }
-      }
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "required": [
+            "sizes",
+            "choices"
+          ],
+          "properties": {
+            "sizes": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "choices": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Which sizes and extra choices this applies to. null means all."
     },
     "pattern": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "designer", "publisher", "pattern_number", "language", "translated_from", "units_in_source", "garment", "construction", "made_to_measure", "summary"],
+      "required": [
+        "title",
+        "designer",
+        "publisher",
+        "pattern_number",
+        "language",
+        "translated_from",
+        "units_in_source",
+        "garment",
+        "construction",
+        "made_to_measure",
+        "summary"
+      ],
       "properties": {
-        "title": { "type": "string" },
-        "designer": { "type": ["string", "null"] },
-        "publisher": { "type": ["string", "null"] },
-        "pattern_number": { "type": ["string", "null"] },
-        "language": { "type": "string", "description": "Language of the pattern text, e.g. en" },
-        "translated_from": { "type": ["string", "null"] },
-        "units_in_source": { "type": "string", "enum": ["cm", "in", "cm_first", "in_first"] },
-        "garment": { "type": ["string", "null"] },
-        "construction": { "type": ["string", "null"], "description": "Short, e.g. \"top down, in the round, raglan\"" },
-        "made_to_measure": { "type": "boolean", "description": "True when stitch counts are placeholders the knitter calculates (e.g. [A], [G-1])" },
-        "summary": { "type": ["string", "null"] }
+        "title": {
+          "type": "string"
+        },
+        "designer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publisher": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pattern_number": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "language": {
+          "type": "string",
+          "description": "Language of the pattern text, e.g. en"
+        },
+        "translated_from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "units_in_source": {
+          "type": "string",
+          "enum": [
+            "cm",
+            "in",
+            "cm_first",
+            "in_first"
+          ]
+        },
+        "garment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "construction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Short, e.g. \"top down, in the round, raglan\""
+        },
+        "made_to_measure": {
+          "type": "boolean",
+          "description": "True when stitch counts are placeholders the knitter calculates (e.g. [A], [G-1])"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "options": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sizes", "size_notation", "choices"],
+      "required": [
+        "sizes",
+        "size_notation",
+        "choices"
+      ],
       "properties": {
         "sizes": {
           "type": "array",
@@ -111,28 +367,59 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "label"],
-            "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
           }
         },
-        "size_notation": { "type": "string", "description": "How the pattern writes per-size values, e.g. \"dash list\", \"a (b, c)\", \"a (b) c (d)\", \"(a, b, c) [d, e, f] {g, h, i}\"" },
+        "size_notation": {
+          "type": "string",
+          "description": "How the pattern writes per-size values, e.g. \"dash list\", \"a (b, c)\", \"a (b) c (d)\", \"(a, b, c) [d, e, f] {g, h, i}\""
+        },
         "choices": {
           "type": "array",
           "description": "Up to two choices besides size, e.g. yarn weight or colour version or left/right foot.",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "name", "values"],
+            "required": [
+              "id",
+              "name",
+              "values"
+            ],
             "properties": {
-              "id": { "type": "string" },
-              "name": { "type": "string" },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
               "values": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["id", "label"],
-                  "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -143,20 +430,48 @@
     "size_guide": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "page", "measurements"],
+      "required": [
+        "kind",
+        "page",
+        "measurements"
+      ],
       "properties": {
-        "kind": { "type": "string", "enum": ["table", "image", "both", "none"] },
-        "page": { "type": ["integer", "null"] },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "image",
+            "both",
+            "none"
+          ]
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "measurements": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "value", "source"],
+            "required": [
+              "name",
+              "value",
+              "source"
+            ],
             "properties": {
-              "name": { "type": "string", "description": "e.g. Chest, Length, Sleeve, To fit" },
-              "value": { "$ref": "#/$defs/sized_value" },
-              "source": { "$ref": "#/$defs/source" }
+              "name": {
+                "type": "string",
+                "description": "e.g. Chest, Length, Sleeve, To fit"
+              },
+              "value": {
+                "$ref": "#/$defs/sized_value"
+              },
+              "source": {
+                "$ref": "#/$defs/source"
+              }
             }
           }
         }
@@ -165,137 +480,509 @@
     "gauge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["text", "stitches", "rows", "over", "stitch_pattern", "condition", "source"],
+      "required": [
+        "text",
+        "stitches",
+        "rows",
+        "over",
+        "stitch_pattern",
+        "condition",
+        "source"
+      ],
       "properties": {
-        "text": { "type": "string" },
-        "stitches": { "type": ["string", "null"] },
-        "rows": { "type": ["string", "null"] },
-        "over": { "type": ["string", "null"], "description": "As written, e.g. \"10 cm\", \"4 in\", \"1 in\"" },
-        "stitch_pattern": { "type": ["string", "null"] },
-        "condition": { "type": ["string", "null"], "description": "e.g. \"after felting\", \"with 2 strands\"" },
-        "source": { "$ref": "#/$defs/source" }
+        "text": {
+          "type": "string"
+        },
+        "stitches": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rows": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "over": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "As written, e.g. \"10 cm\", \"4 in\", \"1 in\""
+        },
+        "stitch_pattern": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "condition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "e.g. \"after felting\", \"with 2 strands\""
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "needle": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "text", "size_mm", "size_us", "size_uk", "kind", "length", "use", "source"],
+      "required": [
+        "id",
+        "text",
+        "size_mm",
+        "size_us",
+        "size_uk",
+        "kind",
+        "length",
+        "use",
+        "source"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "text": { "type": "string" },
-        "size_mm": { "type": ["string", "null"], "description": "As written, e.g. \"4,5\" or \"3.5\"" },
-        "size_us": { "type": ["string", "null"] },
-        "size_uk": { "type": ["string", "null"], "description": "UK or Canadian number, which runs opposite to mm" },
-        "kind": { "type": "string", "enum": ["circular", "straight", "double_pointed", "crochet_hook", "other"] },
-        "length": { "type": ["string", "null"], "description": "Cable length as written, e.g. \"80 cm\", \"16-inch\"" },
-        "use": { "type": ["string", "null"] },
-        "source": { "$ref": "#/$defs/source" }
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "size_mm": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "As written, e.g. \"4,5\" or \"3.5\""
+        },
+        "size_us": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_uk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UK or Canadian number, which runs opposite to mm"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "circular",
+            "straight",
+            "double_pointed",
+            "crochet_hook",
+            "other"
+          ]
+        },
+        "length": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Cable length as written, e.g. \"80 cm\", \"16-inch\""
+        },
+        "use": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "yarn": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "weight", "fibre", "ball", "colour", "strand_group", "alternative_group", "amount", "source"],
+      "required": [
+        "id",
+        "name",
+        "weight",
+        "fibre",
+        "ball",
+        "colour",
+        "strand_group",
+        "alternative_group",
+        "amount",
+        "source"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "weight": { "type": ["string", "null"], "description": "As written, e.g. \"yarn group A\", \"DK\", \"Aran\", \"fingering\"" },
-        "fibre": { "type": ["string", "null"] },
-        "ball": { "type": ["string", "null"], "description": "Ball size as written, e.g. \"50 g = approx 167 m\", \"142 yards/50 grams\"" },
-        "colour": { "type": ["string", "null"] },
-        "strand_group": { "type": ["string", "null"], "description": "Yarns with the same strand_group are held together" },
-        "alternative_group": { "type": ["string", "null"], "description": "Yarns with different alternative_group values are alternatives (\"or use\")" },
-        "amount": { "$ref": "#/$defs/sized_value" },
-        "source": { "$ref": "#/$defs/source" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "weight": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "As written, e.g. \"yarn group A\", \"DK\", \"Aran\", \"fingering\""
+        },
+        "fibre": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ball": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Ball size as written, e.g. \"50 g = approx 167 m\", \"142 yards/50 grams\""
+        },
+        "colour": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "strand_group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Yarns with the same strand_group are held together"
+        },
+        "alternative_group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Yarns with different alternative_group values are alternatives (\"or use\")"
+        },
+        "amount": {
+          "$ref": "#/$defs/sized_value"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "notion": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["text", "source"],
-      "properties": { "text": { "type": "string" }, "source": { "$ref": "#/$defs/source" } }
+      "required": [
+        "text",
+        "source"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
     },
     "abbreviation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["abbr", "meaning", "defined_in_pattern", "source"],
+      "required": [
+        "abbr",
+        "meaning",
+        "defined_in_pattern",
+        "source"
+      ],
       "properties": {
-        "abbr": { "type": "string" },
-        "meaning": { "type": "string" },
-        "defined_in_pattern": { "type": "boolean", "description": "False when used but not defined; then meaning is a standard meaning or empty" },
-        "source": { "$ref": "#/$defs/source" }
+        "abbr": {
+          "type": "string"
+        },
+        "meaning": {
+          "type": "string"
+        },
+        "defined_in_pattern": {
+          "type": "boolean",
+          "description": "False when used but not defined; then meaning is a standard meaning or empty"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "technique": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "text", "source"],
+      "required": [
+        "id",
+        "name",
+        "text",
+        "source"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string", "description": "As the pattern names it, e.g. \"DECREASE TIP\", \"FRinc\"" },
-        "text": { "type": "string" },
-        "source": { "$ref": "#/$defs/source" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "As the pattern names it, e.g. \"DECREASE TIP\", \"FRinc\""
+        },
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "chart": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "page", "kind", "applies_to", "start_point", "written_alternative", "notes", "source"],
+      "required": [
+        "id",
+        "name",
+        "page",
+        "kind",
+        "applies_to",
+        "start_point",
+        "written_alternative",
+        "notes",
+        "source"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "page": { "type": ["integer", "null"] },
-        "kind": { "type": "string", "enum": ["image", "vector", "text"] },
-        "applies_to": { "$ref": "#/$defs/applies_to" },
-        "start_point": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-        "written_alternative": { "type": "boolean" },
-        "notes": { "type": ["string", "null"] },
-        "source": { "$ref": "#/$defs/source" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "vector",
+            "text"
+          ]
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
+        },
+        "start_point": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "written_alternative": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "slot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "value"],
+      "required": [
+        "name",
+        "value"
+      ],
       "properties": {
-        "name": { "type": "string", "description": "Used as {name} in the step text" },
-        "value": { "$ref": "#/$defs/sized_value" }
+        "name": {
+          "type": "string",
+          "description": "Used as {name} in the step text"
+        },
+        "value": {
+          "$ref": "#/$defs/sized_value"
+        }
       }
     },
     "schedule": {
       "description": "Something done repeatedly while the step is worked, e.g. AT THE SAME TIME decreases, buttonholes.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["action", "every", "every_unit", "times", "first_at", "source"],
+      "required": [
+        "action",
+        "every",
+        "every_unit",
+        "times",
+        "first_at",
+        "source"
+      ],
       "properties": {
-        "action": { "type": "string" },
-        "every": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-        "every_unit": { "type": ["string", "null"], "enum": ["rows", "rounds", "cm", "in", "other", null] },
-        "times": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-        "first_at": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-        "source": { "$ref": "#/$defs/source" }
+        "action": {
+          "type": "string"
+        },
+        "every": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "every_unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "rows",
+                "rounds",
+                "cm",
+                "in",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "times": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "step": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "text", "slots", "applies_to", "target", "repeat", "checkpoint", "schedules", "technique_ids", "chart_ids", "source", "confidence"],
+      "required": [
+        "id",
+        "type",
+        "text",
+        "slots",
+        "applies_to",
+        "target",
+        "repeat",
+        "checkpoint",
+        "schedules",
+        "technique_ids",
+        "chart_ids",
+        "source",
+        "confidence"
+      ],
       "properties": {
-        "id": { "type": "string", "description": "Stable, e.g. \"yoke-3\"" },
-        "type": { "type": "string", "enum": ["instruction", "rows", "repeat", "measure", "pick_up", "tick", "chart"] },
-        "text": { "type": "string", "description": "The instruction with per-size numbers replaced by {slot} names. Everything else as written." },
-        "slots": { "type": "array", "items": { "$ref": "#/$defs/slot" } },
-        "applies_to": { "$ref": "#/$defs/applies_to" },
+        "id": {
+          "type": "string",
+          "description": "Stable, e.g. \"yoke-3\""
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "instruction",
+            "rows",
+            "repeat",
+            "measure",
+            "pick_up",
+            "tick",
+            "chart"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "description": "The instruction with per-size numbers replaced by {slot} names. Everything else as written."
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slot"
+          }
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
+        },
         "target": {
           "description": "What the step's counter counts towards.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "count", "length", "until_row"],
+          "required": [
+            "kind",
+            "count",
+            "length",
+            "until_row"
+          ],
           "properties": {
-            "kind": { "type": "string", "enum": ["rows", "rounds", "repeats", "length", "row_number", "none"] },
-            "count": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-            "length": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-            "until_row": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }], "description": "For absolute row numbers, e.g. \"until row 24\"" }
+            "kind": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "rounds",
+                "repeats",
+                "length",
+                "row_number",
+                "none"
+              ]
+            },
+            "count": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/sized_value"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "length": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/sized_value"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "until_row": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/sized_value"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "For absolute row numbers, e.g. \"until row 24\""
+            }
           }
         },
         "repeat": {
@@ -303,59 +990,205 @@
             {
               "type": "object",
               "additionalProperties": false,
-              "required": ["rows_in_repeat", "times", "includes_first"],
+              "required": [
+                "rows_in_repeat",
+                "times",
+                "includes_first"
+              ],
               "properties": {
-                "rows_in_repeat": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }] },
-                "times": { "$ref": "#/$defs/sized_value" },
-                "includes_first": { "type": ["boolean", "null"], "description": "Whether the count includes the first time. null when the pattern is ambiguous." }
+                "rows_in_repeat": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/sized_value"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "times": {
+                  "$ref": "#/$defs/sized_value"
+                },
+                "includes_first": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "Whether the count includes the first time. null when the pattern is ambiguous."
+                }
               }
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
-        "checkpoint": { "anyOf": [{ "$ref": "#/$defs/sized_value" }, { "type": "null" }], "description": "Stitch count stated after the step" },
-        "schedules": { "type": "array", "items": { "$ref": "#/$defs/schedule" } },
-        "technique_ids": { "type": "array", "items": { "type": "string" } },
-        "chart_ids": { "type": "array", "items": { "type": "string" } },
-        "source": { "$ref": "#/$defs/source" },
-        "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stitch count stated after the step"
+        },
+        "schedules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/schedule"
+          }
+        },
+        "technique_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "chart_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        }
       }
     },
     "section": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "instances", "mirrored", "implied", "reminders", "steps", "source"],
+      "required": [
+        "id",
+        "name",
+        "instances",
+        "mirrored",
+        "implied",
+        "reminders",
+        "steps",
+        "source"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "instances": { "type": "array", "items": { "type": "string" }, "description": "Labels when worked more than once, e.g. [\"1st sleeve\", \"2nd sleeve\"]; empty when worked once" },
-        "mirrored": { "type": "boolean" },
-        "implied": { "type": "boolean", "description": "True when the pattern does not state the repeat (e.g. the second sleeve is never mentioned)" },
-        "reminders": { "type": "array", "items": { "$ref": "#/$defs/schedule" }, "description": "Running instructions for the whole section, e.g. buttonholes, I-cord edge" },
-        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
-        "source": { "$ref": "#/$defs/source" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Labels when worked more than once, e.g. [\"1st sleeve\", \"2nd sleeve\"]; empty when worked once"
+        },
+        "mirrored": {
+          "type": "boolean"
+        },
+        "implied": {
+          "type": "boolean",
+          "description": "True when the pattern does not state the repeat (e.g. the second sleeve is never mentioned)"
+        },
+        "reminders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/schedule"
+          },
+          "description": "Running instructions for the whole section, e.g. buttonholes, I-cord edge"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
       }
     },
     "link": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["label", "url", "page", "outside_pattern"],
+      "required": [
+        "label",
+        "url",
+        "page",
+        "outside_pattern"
+      ],
       "properties": {
-        "label": { "type": "string" },
-        "url": { "type": "string" },
-        "page": { "type": ["integer", "null"] },
-        "outside_pattern": { "type": "boolean", "description": "True when steps depend on it (e.g. a sock guide web page)" }
+        "label": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "outside_pattern": {
+          "type": "boolean",
+          "description": "True when steps depend on it (e.g. a sock guide web page)"
+        }
       }
     },
     "doubt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "message", "step_ids", "source"],
+      "required": [
+        "kind",
+        "message",
+        "step_ids",
+        "source"
+      ],
       "properties": {
-        "kind": { "type": "string", "enum": ["list_length", "arithmetic", "conflict", "missing", "from_picture", "ambiguous", "outside_pattern", "unreadable", "other"] },
-        "message": { "type": "string", "description": "Plain English, for the knitter" },
-        "step_ids": { "type": "array", "items": { "type": "string" } },
-        "source": { "anyOf": [{ "$ref": "#/$defs/source" }, { "type": "null" }] }
+        "kind": {
+          "type": "string",
+          "enum": [
+            "list_length",
+            "arithmetic",
+            "conflict",
+            "missing",
+            "from_picture",
+            "ambiguous",
+            "outside_pattern",
+            "unreadable",
+            "other"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Plain English, for the knitter"
+        },
+        "step_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/source"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       }
     }
   }
