@@ -190,6 +190,8 @@ def checkpoints(guide: dict) -> Counter:
     for s in guide["sections"]:
         for st in s["steps"]:
             cp = st["checkpoint"]
+            if cp and "total" in cp:  # format 0.2
+                cp = cp["total"]
             if cp:
                 for i, v in enumerate(cp["by_size"] or []):
                     if v:
