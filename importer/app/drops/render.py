@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+import os
 import re
+import tempfile
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -88,10 +90,21 @@ async def html_to_pdf(html: str, out_path: Path, settings: Settings) -> None:
     except ImportError as exc:  # pragma: no cover
         raise RendererUnavailable("playwright is not installed") from exc
 
+    # Chromium aborts at start-up if it cannot write under HOME (its crash reporter needs a folder there).
+    # The container's user has no home folder, and may not even have a passwd entry, so give each run its own.
+    with tempfile.TemporaryDirectory(prefix="chromium-home-") as home:
+        env = {**os.environ, "HOME": home, "XDG_CONFIG_HOME": f"{home}/.config", "XDG_CACHE_HOME": f"{home}/.cache"}
+        await _print_pdf(html, out_path, exe, env)
+
+
+async def _print_pdf(html: str, out_path: Path, exe: Path, env: dict[str, str]) -> None:
+    from playwright.async_api import async_playwright
+
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
             executable_path=str(exe),
             args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--disable-extensions"],
+            env=env,
         )
         try:
             page = await browser.new_page()
