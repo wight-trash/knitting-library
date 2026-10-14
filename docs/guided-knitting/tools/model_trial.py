@@ -156,15 +156,15 @@ def norm(v: str) -> str:
     return re.sub(r"\s+", "", str(v)).replace("–", "-").lower()
 
 
-def values_by_size(guide: dict) -> Counter:
-    """Every per-size value in the guide, as (size_index, choice, value) counts."""
+def values_by_size(guide: dict, include_all: bool = True) -> Counter:
+    """Every per-size value in the guide, as (size_index, choice, value) counts. include_all=False skips `all`."""
     n = len(guide["options"]["sizes"])
     out: Counter = Counter()
 
     def walk(node):
         if isinstance(node, dict):
             if {"text", "unit", "all", "by_size", "by_choice"} <= node.keys():
-                if node["all"] is not None:
+                if include_all and node["all"] is not None:
                     for i in range(n):
                         out[(i, None, norm(node["all"]))] += 1
                 for i, v in enumerate(node["by_size"] or []):
@@ -183,6 +183,11 @@ def values_by_size(guide: dict) -> Counter:
 
     walk(guide)
     return out
+
+
+def per_size_values(guide: dict) -> Counter:
+    """Only values that differ by size or choice (by_size / by_choice), the numbers that matter most to get right."""
+    return Counter({k: v for k, v in values_by_size(guide, include_all=False).items()})
 
 
 def checkpoints(guide: dict) -> Counter:

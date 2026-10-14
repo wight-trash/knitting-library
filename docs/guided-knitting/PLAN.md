@@ -237,6 +237,24 @@ Conversions to cm, metres, grams and mm happen here, with the originals kept. Ev
 
 Doubts first (A9).
 
+### While a guide is being built (Jeff, 15 October)
+
+Building runs on the server as a background job, so the iPad sleeping, Safari closing or the app being switched does
+not stop it. The pattern page shows **live progress** at every stage:
+* reading;
+* pictures, page by page;
+* outline;
+* each section by name;
+* checks;
+* repair.
+
+The page:
+* asks for the latest progress the moment it becomes visible again, so after unlocking it is up to date at once;
+* shows an elapsed time that keeps counting;
+* never sits still: the builder repeats its latest event every few seconds while a model call is running.
+
+No notifications. A page that looked frozen would make Mary cancel, so "frozen-looking" counts as a bug.
+
 **Made-to-measure patterns** (Barcelona): the guide is built with the placeholders shown as "your number". Mary
 types her numbers in once, in the editor. Full spreadsheet support is not planned.
 

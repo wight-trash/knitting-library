@@ -196,6 +196,30 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(client.calls.count("pattern_section"), 2)
         self.assertEqual(res.report["calls"], 3)
 
+    def test_heartbeat_keeps_progress_moving_during_slow_calls(self):
+        import time as _time
+        from app.guide_builder import pipeline as pl
+
+        class SlowClient(FakeClient):
+            def json(self, *a, **kw):
+                _time.sleep(0.3)
+                return super().json(*a, **kw)
+
+        old = pl.HEARTBEAT_SECONDS
+        pl.HEARTBEAT_SECONDS = 0.05
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                pdf = Path(tmp) / "hat.pdf"
+                pdf.write_bytes(tiny_pdf(LINES))
+                events = []
+                build_guide(str(pdf), SlowClient(), report=events.append, workers=2)
+        finally:
+            pl.HEARTBEAT_SECONDS = old
+        beats = [e for e in events if e.detail.get("heartbeat")]
+        self.assertTrue(beats, "no heartbeat events while the model was answering")
+        self.assertTrue(all("elapsed" in e.detail for e in beats))
+        self.assertEqual(events[-1].stage, "done")
+
     def test_quote_not_in_pattern_becomes_a_doubt(self):
         bad = json.loads(json.dumps(SECTIONS))
         bad["Brim"]["steps"][0]["quote"] = "Cast on 200 stitches using the long-tail method and join."
