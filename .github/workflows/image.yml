@@ -9,6 +9,7 @@ on:
       - "importer/**"
       - "deploy/**"
       - "*.md"
+      - ".github/workflows/importer-image.yml"
   workflow_dispatch:
 
 permissions:
@@ -34,11 +35,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Build into the runner first, start it and try the basics, and only then publish.
       - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
-          push: true
+          load: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/knitting-library:${{ steps.tag.outputs.name }}
             ghcr.io/${{ github.repository_owner }}/knitting-library:sha-${{ github.sha }}
+      - name: Smoke test (sign-in, PDF upload, page pictures)
+        run: |
+          docker run -d --name kl-smoke -p 18080:8080 ghcr.io/${{ github.repository_owner }}/knitting-library:sha-${{ github.sha }}
+          python3 .github/scripts/kl-smoke.py http://127.0.0.1:18080 || { docker logs kl-smoke; exit 1; }
+          docker rm -f kl-smoke
+      - name: Publish
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/knitting-library:sha-${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/knitting-library:${{ steps.tag.outputs.name }}
