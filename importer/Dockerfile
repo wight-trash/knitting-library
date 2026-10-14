@@ -1,6 +1,6 @@
 # Knit Import: reads DROPS patterns and adds them to Knitting Library.
 # Chromium makes the PDF. poppler-utils reads and previews it.
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-trixie
 
 LABEL org.opencontainers.image.source="https://github.com/wight-trash/knitting-library"
 LABEL org.opencontainers.image.description="Adds patterns from pattern websites to Knitting Library"
