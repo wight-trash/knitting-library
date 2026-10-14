@@ -1,312 +1,368 @@
 {
-  "schema_version": "0.1",
-  "pattern": {
-    "title": "Example Hat (hypothetical)",
-    "designer": "Invented for documentation",
-    "publisher": null,
-    "pattern_number": null,
-    "language": "en",
-    "translated_from": null,
-    "units_in_source": "cm",
-    "garment": "hat",
-    "construction": "bottom up, in the round",
-    "made_to_measure": false,
-    "summary": "A made-up two-size hat used to show the guide format. Not a real pattern."
-  },
-  "options": {
-    "sizes": [
-      {
-        "id": "s",
-        "label": "S"
-      },
-      {
-        "id": "m",
-        "label": "M"
-      }
-    ],
-    "size_notation": "a (b)",
-    "choices": []
-  },
-  "size_guide": {
-    "kind": "table",
+ "schema_version": "0.2",
+ "build": null,
+ "pattern": {
+  "title": "Example Hat (hypothetical)",
+  "designer": "Invented for documentation",
+  "publisher": null,
+  "pattern_number": null,
+  "language": "en",
+  "translated_from": null,
+  "units_in_source": "cm",
+  "garment": "hat",
+  "construction": "bottom up, in the round",
+  "made_to_measure": false,
+  "summary": "A made-up two-size hat used to show the guide format. Not a real pattern."
+ },
+ "options": {
+  "sizes": [
+   {
+    "id": "s",
+    "label": "S"
+   },
+   {
+    "id": "m",
+    "label": "M"
+   }
+  ],
+  "size_notation": "a (b)",
+  "choices": []
+ },
+ "size_guide": {
+  "kind": "table",
+  "page": 1,
+  "measurements": [
+   {
+    "name": "Head circumference",
+    "value": {
+     "text": "48 (52) cm",
+     "unit": "cm",
+     "all": null,
+     "by_size": [
+      "48",
+      "52"
+     ],
+     "by_choice": null,
+     "from_picture": false,
+     "alt": null
+    },
+    "source": {
+     "page": 1,
+     "quote": "48 (52) cm",
+     "from_picture": false
+    }
+   }
+  ]
+ },
+ "gauge": [
+  {
+   "text": "22 sts and 30 rounds = 10 cm in stocking stitch",
+   "stitches": "22",
+   "rows": "30",
+   "over": "10 cm",
+   "stitch_pattern": "stocking stitch",
+   "condition": null,
+   "source": {
     "page": 1,
-    "measurements": [
+    "quote": "22 sts and 30 rounds = 10 cm",
+    "from_picture": false
+   },
+   "rows_unit": null,
+   "applies_to": null
+  }
+ ],
+ "needles": [
+  {
+   "id": "n1",
+   "text": "4 mm circular, 40 cm",
+   "size_mm": "4",
+   "size_us": null,
+   "size_uk": null,
+   "length": {
+    "text": "40 cm",
+    "unit": null,
+    "all": "40 cm",
+    "by_size": null,
+    "by_choice": null,
+    "from_picture": false,
+    "alt": null
+   },
+   "use": "body",
+   "source": {
+    "page": 1,
+    "quote": "4 mm circular needle, 40 cm",
+    "from_picture": false
+   },
+   "kinds": [
+    "circular"
+   ],
+   "applies_to": null
+  }
+ ],
+ "yarns": [
+  {
+   "id": "y1",
+   "name": "Any DK wool",
+   "weight": "DK",
+   "fibre": "wool",
+   "ball": "50 g = approx 110 m",
+   "colour": null,
+   "strand_group": null,
+   "alternative_group": null,
+   "amount": {
+    "text": "50 (100) g",
+    "unit": "g",
+    "all": null,
+    "by_size": [
+     "50",
+     "100"
+    ],
+    "by_choice": null,
+    "from_picture": false,
+    "alt": null
+   },
+   "source": {
+    "page": 1,
+    "quote": "50 (100) g",
+    "from_picture": false
+   },
+   "alternatives_text": null,
+   "applies_to": null
+  }
+ ],
+ "notions": [
+  {
+   "text": "1 stitch marker",
+   "source": {
+    "page": 1,
+    "quote": "1 stitch marker",
+    "from_picture": false
+   },
+   "amount": null,
+   "applies_to": null
+  }
+ ],
+ "abbreviations": [
+  {
+   "abbr": "k2tog",
+   "meaning": "knit 2 together",
+   "defined_in_pattern": true,
+   "source": {
+    "page": 1,
+    "quote": "k2tog: knit 2 together",
+    "from_picture": false
+   }
+  }
+ ],
+ "techniques": [],
+ "charts": [],
+ "sections": [
+  {
+   "id": "brim",
+   "name": "Brim",
+   "instances": [],
+   "mirrored": false,
+   "implied": false,
+   "source": {
+    "page": 2,
+    "quote": "BRIM",
+    "from_picture": false
+   },
+   "steps": [
+    {
+     "id": "brim-1",
+     "type": "instruction",
+     "text": "Cast on {cast_on} stitches and join to work in the round.",
+     "slots": [
       {
-        "name": "Head circumference",
-        "value": {
-          "text": "48 (52) cm",
-          "unit": "cm",
-          "all": null,
-          "by_size": [
-            "48",
-            "52"
-          ],
-          "by_choice": null
-        },
-        "source": {
-          "page": 1,
-          "quote": "48 (52) cm",
-          "from_picture": false
-        }
-      }
-    ]
-  },
-  "gauge": [
-    {
-      "text": "22 sts and 30 rounds = 10 cm in stocking stitch",
-      "stitches": "22",
-      "rows": "30",
-      "over": "10 cm",
-      "stitch_pattern": "stocking stitch",
-      "condition": null,
-      "source": {
-        "page": 1,
-        "quote": "22 sts and 30 rounds = 10 cm",
-        "from_picture": false
-      }
-    }
-  ],
-  "needles": [
-    {
-      "id": "n1",
-      "text": "4 mm circular, 40 cm",
-      "size_mm": "4",
-      "size_us": null,
-      "size_uk": null,
-      "kind": "circular",
-      "length": "40 cm",
-      "use": "body",
-      "source": {
-        "page": 1,
-        "quote": "4 mm circular needle, 40 cm",
-        "from_picture": false
-      }
-    }
-  ],
-  "yarns": [
-    {
-      "id": "y1",
-      "name": "Any DK wool",
-      "weight": "DK",
-      "fibre": "wool",
-      "ball": "50 g = approx 110 m",
-      "colour": null,
-      "strand_group": null,
-      "alternative_group": null,
-      "amount": {
-        "text": "50 (100) g",
-        "unit": "g",
+       "name": "cast_on",
+       "value": {
+        "text": "104 (112)",
+        "unit": "stitches",
         "all": null,
         "by_size": [
-          "50",
-          "100"
+         "104",
+         "112"
         ],
-        "by_choice": null
-      },
-      "source": {
-        "page": 1,
-        "quote": "50 (100) g",
-        "from_picture": false
+        "by_choice": null,
+        "from_picture": false,
+        "alt": null
+       }
       }
-    }
-  ],
-  "notions": [
-    {
-      "text": "1 stitch marker",
-      "source": {
-        "page": 1,
-        "quote": "1 stitch marker",
-        "from_picture": false
-      }
-    }
-  ],
-  "abbreviations": [
-    {
-      "abbr": "k2tog",
-      "meaning": "knit 2 together",
-      "defined_in_pattern": true,
-      "source": {
-        "page": 1,
-        "quote": "k2tog: knit 2 together",
-        "from_picture": false
-      }
-    }
-  ],
-  "techniques": [],
-  "charts": [],
-  "sections": [
-    {
-      "id": "brim",
-      "name": "Brim",
-      "instances": [],
-      "mirrored": false,
-      "implied": false,
-      "reminders": [],
-      "source": {
-        "page": 2,
-        "quote": "BRIM",
-        "from_picture": false
-      },
-      "steps": [
-        {
-          "id": "brim-1",
-          "type": "instruction",
-          "text": "Cast on {cast_on} stitches and join to work in the round.",
-          "slots": [
-            {
-              "name": "cast_on",
-              "value": {
-                "text": "104 (112)",
-                "unit": "stitches",
-                "all": null,
-                "by_size": [
-                  "104",
-                  "112"
-                ],
-                "by_choice": null
-              }
-            }
-          ],
-          "applies_to": null,
-          "target": {
-            "kind": "none",
-            "count": null,
-            "length": null,
-            "until_row": null
-          },
-          "repeat": null,
-          "checkpoint": null,
-          "schedules": [],
-          "technique_ids": [],
-          "chart_ids": [],
-          "source": {
-            "page": 2,
-            "quote": "Cast on 104 (112) sts",
-            "from_picture": false
-          },
-          "confidence": "high"
-        },
-        {
-          "id": "brim-2",
-          "type": "measure",
-          "text": "Work k2, p2 rib until the brim measures {length}.",
-          "slots": [
-            {
-              "name": "length",
-              "value": {
-                "text": "5 cm",
-                "unit": "cm",
-                "all": "5",
-                "by_size": null,
-                "by_choice": null
-              }
-            }
-          ],
-          "applies_to": null,
-          "target": {
-            "kind": "length",
-            "count": null,
-            "length": {
-              "text": "5 cm",
-              "unit": "cm",
-              "all": "5",
-              "by_size": null,
-              "by_choice": null
-            },
-            "until_row": null
-          },
-          "repeat": null,
-          "checkpoint": null,
-          "schedules": [],
-          "technique_ids": [],
-          "chart_ids": [],
-          "source": {
-            "page": 2,
-            "quote": "rib until brim measures 5 cm",
-            "from_picture": false
-          },
-          "confidence": "high"
-        }
-      ]
+     ],
+     "applies_to": null,
+     "target": {
+      "kind": "none",
+      "count": null,
+      "length": null,
+      "until_row": null,
+      "measured_from": null,
+      "ending": null,
+      "match": null
+     },
+     "repeat": null,
+     "checkpoint": null,
+     "schedules": [],
+     "technique_ids": [],
+     "chart_ids": [],
+     "source": {
+      "page": 2,
+      "quote": "Cast on 104 (112) sts",
+      "from_picture": false
+     },
+     "confidence": "high",
+     "based_on": null,
+     "optional": false
     },
     {
-      "id": "crown",
-      "name": "Crown",
-      "instances": [],
-      "mirrored": false,
-      "implied": false,
-      "reminders": [],
-      "source": {
-        "page": 2,
-        "quote": "CROWN",
-        "from_picture": false
+     "id": "brim-2",
+     "type": "measure",
+     "text": "Work k2, p2 rib until the brim measures {length}.",
+     "slots": [
+      {
+       "name": "length",
+       "value": {
+        "text": "5 cm",
+        "unit": "cm",
+        "all": "5",
+        "by_size": null,
+        "by_choice": null,
+        "from_picture": false,
+        "alt": null
+       }
+      }
+     ],
+     "applies_to": null,
+     "target": {
+      "kind": "length",
+      "count": null,
+      "length": {
+       "text": "5 cm",
+       "unit": "cm",
+       "all": "5",
+       "by_size": null,
+       "by_choice": null,
+       "from_picture": false,
+       "alt": null
       },
-      "steps": [
-        {
-          "id": "crown-1",
-          "type": "rows",
-          "text": "Next round: k2tog to end. You now have {sts} stitches.",
-          "slots": [
-            {
-              "name": "sts",
-              "value": {
-                "text": "52 (56) sts",
-                "unit": "stitches",
-                "all": null,
-                "by_size": [
-                  "52",
-                  "56"
-                ],
-                "by_choice": null
-              }
-            }
-          ],
-          "applies_to": null,
-          "target": {
-            "kind": "rounds",
-            "count": {
-              "text": "1 round",
-              "unit": "rounds",
-              "all": "1",
-              "by_size": null,
-              "by_choice": null
-            },
-            "length": null,
-            "until_row": null
-          },
-          "repeat": null,
-          "checkpoint": {
-            "text": "52 (56) sts",
-            "unit": "stitches",
-            "all": null,
-            "by_size": [
-              "52",
-              "56"
-            ],
-            "by_choice": null
-          },
-          "schedules": [],
-          "technique_ids": [],
-          "chart_ids": [],
-          "source": {
-            "page": 2,
-            "quote": "k2tog to end. 52 (56) sts",
-            "from_picture": false
-          },
-          "confidence": "high"
-        }
-      ]
+      "until_row": null,
+      "measured_from": null,
+      "ending": null,
+      "match": null
+     },
+     "repeat": null,
+     "checkpoint": null,
+     "schedules": [],
+     "technique_ids": [],
+     "chart_ids": [],
+     "source": {
+      "page": 2,
+      "quote": "rib until brim measures 5 cm",
+      "from_picture": false
+     },
+     "confidence": "high",
+     "based_on": null,
+     "optional": false
     }
-  ],
-  "links": [],
-  "doubts": [
+   ]
+  },
+  {
+   "id": "crown",
+   "name": "Crown",
+   "instances": [],
+   "mirrored": false,
+   "implied": false,
+   "source": {
+    "page": 2,
+    "quote": "CROWN",
+    "from_picture": false
+   },
+   "steps": [
     {
-      "kind": "ambiguous",
-      "message": "The pattern does not say how long to knit between the brim and the crown. (Invented, to show what a doubt looks like.)",
-      "step_ids": [
-        "crown-1"
-      ],
-      "source": null
+     "id": "crown-1",
+     "type": "rows",
+     "text": "Next round: k2tog to end. You now have {sts} stitches.",
+     "slots": [
+      {
+       "name": "sts",
+       "value": {
+        "text": "52 (56) sts",
+        "unit": "stitches",
+        "all": null,
+        "by_size": [
+         "52",
+         "56"
+        ],
+        "by_choice": null,
+        "from_picture": false,
+        "alt": null
+       }
+      }
+     ],
+     "applies_to": null,
+     "target": {
+      "kind": "rounds",
+      "count": {
+       "text": "1 round",
+       "unit": "rounds",
+       "all": "1",
+       "by_size": null,
+       "by_choice": null,
+       "from_picture": false,
+       "alt": null
+      },
+      "length": null,
+      "until_row": null,
+      "measured_from": null,
+      "ending": null,
+      "match": null
+     },
+     "repeat": null,
+     "checkpoint": {
+      "kind": "stitches",
+      "total": {
+       "text": "52 (56) sts",
+       "unit": "stitches",
+       "all": null,
+       "by_size": [
+        "52",
+        "56"
+       ],
+       "by_choice": null,
+       "from_picture": false,
+       "alt": null
+      },
+      "parts": [],
+      "text": null
+     },
+     "schedules": [],
+     "technique_ids": [],
+     "chart_ids": [],
+     "source": {
+      "page": 2,
+      "quote": "k2tog to end. 52 (56) sts",
+      "from_picture": false
+     },
+     "confidence": "high",
+     "based_on": null,
+     "optional": false
     }
-  ]
+   ]
+  }
+ ],
+ "pieces": [],
+ "reminders": [],
+ "links": [],
+ "doubts": [
+  {
+   "kind": "ambiguous",
+   "message": "The pattern does not say how long to knit between the brim and the crown. (Invented, to show what a doubt looks like.)",
+   "step_ids": [
+    "crown-1"
+   ],
+   "source": null,
+   "origin": "person",
+   "target": null
+  }
+ ]
 }

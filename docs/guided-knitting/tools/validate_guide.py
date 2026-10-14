@@ -46,8 +46,8 @@ def check(guide: dict) -> list[str]:
 
     for path, sv in sized_values(guide):
         used = [k for k in ("all", "by_size", "by_choice") if sv[k] is not None]
-        if len(used) != 1:
-            problems.append(f"{path}: needs exactly one of all/by_size/by_choice, has {used or 'none'}")
+        if len(used) > 1:
+            problems.append(f"{path}: at most one of all/by_size/by_choice, has {used}")
         lists = []
         if sv["by_size"] is not None:
             lists.append(("by_size", sv["by_size"]))
@@ -75,8 +75,22 @@ def check(guide: dict) -> list[str]:
 
     technique_ids = {t["id"] for t in guide["techniques"]}
     chart_ids = {c["id"] for c in guide["charts"]}
+    section_id_set = {sec["id"] for sec in guide["sections"]}
     for c in guide["charts"]:
         check_applies(f"chart {c['id']}", c["applies_to"])
+        for sp in c.get("start_points", []):
+            if sp["section_id"] is not None and sp["section_id"] not in section_id_set:
+                problems.append(f"chart {c['id']}: start point for unknown section {sp['section_id']!r}")
+    for group in ("gauge", "needles", "yarns", "notions"):
+        for idx, item in enumerate(guide.get(group, [])):
+            check_applies(f"{group}[{idx}]", item.get("applies_to"))
+    for piece in guide.get("pieces", []):
+        for sid in piece["section_ids"]:
+            if sid not in section_id_set:
+                problems.append(f"piece {piece['id']}: unknown section {sid!r}")
+        for inst in piece["instances"]:
+            if inst["choice"] is not None and inst["choice"] not in choice_values:
+                problems.append(f"piece {piece['id']}: unknown choice {inst['choice']!r}")
 
     step_ids: list[str] = []
     section_ids = [s["id"] for s in guide["sections"]]
@@ -107,6 +121,10 @@ def check(guide: dict) -> list[str]:
     if len(step_ids) != len(set(step_ids)):
         dupes = sorted({s for s in step_ids if step_ids.count(s) > 1})
         problems.append(f"steps: duplicate ids {dupes}")
+    for r in guide.get("reminders", []):
+        for key in ("from_step", "until_step"):
+            if r[key] is not None and r[key] not in step_ids and r[key] not in section_id_set:
+                problems.append(f"reminder {r['id']}: {key} {r[key]!r} is not a step")
     for doubt in guide["doubts"]:
         for s in doubt["step_ids"]:
             if s not in step_ids:

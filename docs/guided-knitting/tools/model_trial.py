@@ -92,11 +92,14 @@ def build_messages(pdf: Path) -> list[dict]:
     return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": content}]
 
 
+MAX_TOKENS = 120000
+
+
 def call(model: str, messages: list[dict], key: str, strict: bool = True) -> dict:
     body = {
         "model": model,
         "messages": messages,
-        "max_tokens": 60000,
+        "max_tokens": MAX_TOKENS,
         "usage": {"include": True},
         "provider": {"data_collection": "deny", "require_parameters": True},
     }
