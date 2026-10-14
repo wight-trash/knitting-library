@@ -1,0 +1,53 @@
+# Weekly update pull requests for every package list and base image in the fork, aimed at dev.
+# Dependabot only reads this file from the repository's default branch, so it does nothing while
+# the default branch is main (a plain copy of upstream). Make jeff the default branch to switch it on.
+#
+# Minor and patch updates are grouped into one pull request per folder; major versions come one by one.
+# Merge into dev, let the image builds and smoke tests run, try the dev stack, then promote to jeff.
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /importer
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
+    groups:
+      importer-minor: { update-types: [minor, patch] }
+
+  - package-ecosystem: docker
+    directory: /importer
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
+
+  - package-ecosystem: pip
+    directory: /app/backend
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
+    groups:
+      backend-minor: { update-types: [minor, patch] }
+    ignore:
+      # bcrypt 5 refuses passwords over 72 bytes, so long existing passwords stop working.
+      # Needs a code change upstream first. See FORK.md.
+      - dependency-name: bcrypt
+        versions: [">=5"]
+
+  - package-ecosystem: npm
+    directory: /app/frontend
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
+    groups:
+      frontend-minor: { update-types: [minor, patch] }
+    ignore:
+      # lucide-react 1.x dropped the GitHub icon the app uses in four upstream files.
+      - dependency-name: lucide-react
+        versions: [">=1"]
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule: { interval: weekly, day: monday }
