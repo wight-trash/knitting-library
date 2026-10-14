@@ -1,0 +1,69 @@
+# TEST copy of the stack, built from the dev branch. Runs beside the live stack without touching it.
+# Deploy it as its own project in Arcane, with its own .env file (IMPORTER_PASSWORD, and DEV_PUBLIC_URL if
+# the address below is wrong).
+#
+# Everything is separate from the live stack:
+#   images      :dev tags, built from the dev branch (live uses :jeff and :latest from the jeff branch)
+#   containers  knitting-library-dev, knit-import-dev
+#   network     knit-dev
+#   host ports  28418 (library) and 31953 (importer). Change with KL_PORT and IMPORT_PORT in .env.
+#   datasets    tank/configs/knitting-library-dev and tank/configs/knit-import-dev
+#
+# Test data. Either start empty, or give the dev library a copy of the live one. A ZFS clone of a
+# snapshot is quick and leaves the live data alone:
+#   zfs snapshot tank/configs/knitting-library@dev-seed
+#   zfs clone tank/configs/knitting-library@dev-seed tank/configs/knitting-library-dev
+# The clone keeps the live library's users, including "importer", so the same IMPORTER_PASSWORD works.
+# A clone depends on its snapshot: destroy the clone before you can destroy that snapshot.
+# knit-import-dev holds only drafts and a page cache, so an empty dataset is fine.
+#
+# Reaching it. Either open http://<NAS address>:28418 on the LAN, or add a second Pangolin resource
+# (for example knit-dev.wighttrash.uk) with Keycloak SSO and the same two targets as the live one, on
+# ports 28418 and 31953. The importer has no sign-in of its own, so do not expose it without SSO.
+
+name: knitting-dev
+
+services:
+  knitting-library:
+    image: ghcr.io/wight-trash/knitting-library:dev
+    container_name: knitting-library-dev
+    restart: unless-stopped
+    environment:
+      PUID: "568"
+      PGID: "568"
+      TRUSTED_PROXIES: ""
+      ALLOWED_ORIGINS: "${DEV_PUBLIC_URL:-https://knit-dev.wighttrash.uk}"
+      KNITTING_DATA_DIR: /data
+      KNITTING_LOG_DIR: /logs
+      KNITTING_STATIC_DIR: /app/frontend/build
+    volumes:
+      - /mnt/tank/configs/knitting-library-dev/data:/data
+      - /mnt/tank/configs/knitting-library-dev/logs:/logs
+    ports:
+      - "${KL_PORT:-28418}:8080"
+    networks: [knit-dev]
+
+  knit-import:
+    image: ghcr.io/wight-trash/knit-import:dev
+    container_name: knit-import-dev
+    restart: unless-stopped
+    depends_on: [knitting-library]
+    environment:
+      KL_URL: http://knitting-library:8080           # the service name, on this stack's own network
+      KL_PUBLIC_URL: "${DEV_PUBLIC_URL:-https://knit-dev.wighttrash.uk}"
+      BASE_PATH: /import
+      KL_USERNAME: importer
+      KL_PASSWORD: ${IMPORTER_PASSWORD:?set IMPORTER_PASSWORD in the .env file}
+      DROPS_MIN_INTERVAL: "3"
+      DROPS_CONTACT: ""
+      DRAFT_TTL_HOURS: "24"
+    volumes:
+      - /mnt/tank/configs/knit-import-dev:/data
+    ports:
+      - "${IMPORT_PORT:-31953}:8080"
+    networks: [knit-dev]
+    shm_size: "256m"
+
+networks:
+  knit-dev:
+    name: knit-dev

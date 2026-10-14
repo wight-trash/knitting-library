@@ -10,11 +10,35 @@ The `jeff` branch is upstream `main` plus a few things on top.
 | Second patch commit | Makes `[label](https://...)` links clickable in the text version viewer. Needed for video, lesson and yarn links. |
 | Third patch commit | Adds an "Import from DROPS" link to the sidebar and the Add menu. It goes to `/import/`, where the importer is served. Only `AppShell.jsx`, `AppShell.css` and `en.js` change. |
 | `importer/` | The importer, a separate app that adds patterns from websites to Knitting Library. Own README. |
-| `deploy/docker-compose.yml` | Both apps on one private network. |
+| `deploy/docker-compose.yml` | The live stack: both apps on one private network. |
+| `deploy/docker-compose.dev.yml` | A test copy of the stack, built from `dev`. Runs beside the live one. |
 | `.github/workflows/` | Image builds for both apps, and a weekly upstream check. |
 | `sync-upstream.sh` | Keeps the `jeff` branch in step with upstream. |
 
 Only the three patch commits touch upstream files. Everything else is new files, so it cannot conflict with upstream.
+
+## Branches
+
+| Branch | What | Images |
+| --- | --- | --- |
+| `main` | A plain copy of upstream. Never commit here. | none |
+| `jeff` | Live. Upstream `main` plus the patches. The NAS runs this. | `knitting-library:jeff`, `knit-import:latest` |
+| `dev` | Testing. `jeff` plus work not yet proven. | `knitting-library:dev`, `knit-import:dev` |
+
+Every image also gets a `sha-<commit>` tag, for rollback.
+
+Work goes on `dev` first. Pushing to `dev` builds only the `:dev` images, so the live stack is not touched.
+Try it on the dev stack (`deploy/docker-compose.dev.yml`), then promote it:
+
+```
+git checkout dev && git rebase jeff        # only needed if jeff has moved since dev was made
+git push --force-with-lease origin dev     # only if the rebase changed anything
+git push origin dev:jeff                   # jeff moves to dev; the live images rebuild
+```
+
+`git push origin dev:jeff` is refused unless `dev` is `jeff` plus new commits on top. That is the safety
+check: it cannot overwrite anything on `jeff`. After an upstream sync of `jeff`, rebase `dev` onto `jeff`
+in the same way.
 
 ## Keeping in step with upstream
 
@@ -48,4 +72,9 @@ Knitting Library has its own login behind Pangolin, so Mary signs in twice. Addi
 
 ## Status
 
-`sync-upstream.sh` was tested in three cases against local copies: no change, clean rebase, conflict. The three workflow files and both image builds have not been run yet.
+`sync-upstream.sh` was tested in three cases against local copies: no change, clean rebase, conflict. Both image builds have run on `jeff`.
+The `dev` image tags have not been built yet.
+
+The weekly upstream check has never run. GitHub runs scheduled workflows only from the default branch,
+and this fork's default branch is `main`, which does not have the workflow. Making `jeff` the default
+branch would fix it.
