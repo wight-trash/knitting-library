@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "guided-knitting/ai-section-schema/0.2",
+  "title": "ai-section-schema",
+  "description": "Step 2 of building a guide: the steps of one section, as exact quotes. Code finds the numbers in the quotes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "steps",
+    "reminders",
+    "doubts"
+  ],
+  "properties": {
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      },
+      "description": "In working order, one per distinct thing the knitter does or counts"
+    },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "quote",
+          "until"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "quote": {
+            "type": "string",
+            "description": "Copy word for word from the pattern"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Running instructions that continue beyond one step"
+    },
+    "doubts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/doubt"
+      }
+    }
+  },
+  "$defs": {
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "every_quote",
+        "every_unit",
+        "times_quote",
+        "on_rows_quote",
+        "until_quote",
+        "quote"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "every_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "every_unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "rows",
+                "rounds",
+                "cm",
+                "in",
+                "other"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "times_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "on_rows_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "until_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quote": {
+          "type": "string",
+          "description": "Copy word for word from the pattern: the whole instruction"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "quote",
+        "page",
+        "target_kind",
+        "count_quote",
+        "length_quote",
+        "until_row_quote",
+        "measured_from",
+        "ending",
+        "repeat",
+        "checkpoint_quote",
+        "schedules",
+        "techniques",
+        "charts",
+        "sizes_note",
+        "optional",
+        "from_picture"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "instruction",
+            "rows",
+            "repeat",
+            "measure",
+            "pick_up",
+            "tick",
+            "chart"
+          ]
+        },
+        "quote": {
+          "type": "string",
+          "description": "Copy word for word from the pattern: the whole instruction for this step, exactly as written, including every number"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_kind": {
+          "type": "string",
+          "enum": [
+            "rows",
+            "rounds",
+            "repeats",
+            "length",
+            "row_number",
+            "match",
+            "none"
+          ]
+        },
+        "count_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern: the words giving the number of rows/rounds/repeats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "length_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern: the words giving the length"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "until_row_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "measured_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ending": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rows_quote",
+                "times_quote",
+                "until_quote",
+                "includes_first"
+              ],
+              "properties": {
+                "rows_quote": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Copy word for word from the pattern"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "times_quote": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Copy word for word from the pattern"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "until_quote": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Copy word for word from the pattern"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "includes_first": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checkpoint_quote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Copy word for word from the pattern: a stitch count stated after the step"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schedules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/schedule"
+          },
+          "description": "AT THE SAME TIME instructions"
+        },
+        "techniques": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of techniques the step refers to"
+        },
+        "charts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of charts the step uses"
+        },
+        "sizes_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "When the step applies only to some sizes or choices, e.g. \"sizes XL-XXXL only\""
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optional": {
+          "type": "boolean"
+        },
+        "from_picture": {
+          "type": "boolean"
+        }
+      }
+    },
+    "doubt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "message",
+        "page"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "list_length",
+            "conflict",
+            "missing",
+            "from_picture",
+            "ambiguous",
+            "outside_pattern",
+            "unreadable",
+            "other"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Plain English for the knitter. Never claim arithmetic errors: code checks those."
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,709 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "guided-knitting/ai-outline-schema/0.2",
+  "title": "ai-outline-schema",
+  "description": "Step 1 of building a guide: the pattern's options, materials and sections. Numbers stay inside exact quotes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "designer",
+    "publisher",
+    "pattern_number",
+    "language",
+    "translated_from",
+    "garment",
+    "construction",
+    "units_in_source",
+    "made_to_measure",
+    "sizes",
+    "size_notation",
+    "choices",
+    "size_guide",
+    "yarns",
+    "needles",
+    "notions",
+    "gauge",
+    "abbreviations",
+    "techniques",
+    "charts",
+    "sections",
+    "links_outside",
+    "doubts"
+  ],
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "designer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "publisher": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pattern_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "language": {
+      "type": "string"
+    },
+    "translated_from": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "garment": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "construction": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "units_in_source": {
+      "type": "string",
+      "enum": [
+        "cm",
+        "in",
+        "cm_first",
+        "in_first"
+      ]
+    },
+    "made_to_measure": {
+      "type": "boolean"
+    },
+    "sizes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Size labels in the pattern's order; one entry for a one-size pattern"
+    },
+    "size_notation": {
+      "type": "string"
+    },
+    "choices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "values"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "At most two choices besides size"
+    },
+    "size_guide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "page",
+        "rows"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "image",
+            "both",
+            "list",
+            "none"
+          ]
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "quote",
+              "page",
+              "from_picture"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "quote": {
+                "type": "string",
+                "description": "Copy word for word from the pattern"
+              },
+              "page": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "from_picture": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "yarns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "weight",
+          "fibre",
+          "ball",
+          "colour",
+          "strand_group",
+          "alternative_group",
+          "alternatives_text",
+          "amount_quote",
+          "page",
+          "from_picture",
+          "choice_value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fibre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ball": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strand_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alternative_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alternatives_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amount_quote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Copy word for word from the pattern: the per-size amounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_picture": {
+            "type": "boolean"
+          },
+          "choice_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "When the yarn belongs to one choice value"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "needles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "page",
+          "choice_value"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Copy word for word from the pattern"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "choice_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "notions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "page"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Copy word for word from the pattern"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "gauge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "page",
+          "condition",
+          "choice_value"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Copy word for word from the pattern"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "choice_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "abbreviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "abbr",
+          "meaning",
+          "defined"
+        ],
+        "properties": {
+          "abbr": {
+            "type": "string"
+          },
+          "meaning": {
+            "type": "string"
+          },
+          "defined": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "techniques": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "page",
+          "quote"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quote": {
+            "type": "string",
+            "description": "Copy word for word from the pattern: the whole explanation"
+          }
+        }
+      }
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "page",
+          "kind",
+          "applies_text",
+          "written_alternative"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "vector",
+              "text"
+            ]
+          },
+          "applies_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "e.g. \"sizes S-XL\""
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "written_alternative": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "first_page",
+          "last_page",
+          "start_quote",
+          "instances",
+          "mirrored",
+          "implied",
+          "based_on_section"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "first_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_quote": {
+            "type": "string",
+            "description": "Copy word for word from the pattern: the first words of the section"
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "e.g. [\"1st sleeve\", \"2nd sleeve\"]; empty when worked once"
+          },
+          "mirrored": {
+            "type": "boolean"
+          },
+          "implied": {
+            "type": "boolean"
+          },
+          "based_on_section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Construction sections in working order. Front matter is not a section."
+    },
+    "links_outside": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "url",
+          "page"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "doubts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/doubt"
+      }
+    }
+  },
+  "$defs": {
+    "doubt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "message",
+        "page"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "list_length",
+            "conflict",
+            "missing",
+            "from_picture",
+            "ambiguous",
+            "outside_pattern",
+            "unreadable",
+            "other"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Plain English for the knitter. Never claim arithmetic errors: code checks those."
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

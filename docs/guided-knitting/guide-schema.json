@@ -1,12 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "guided-knitting/guide-schema/0.1",
-  "title": "Knitting pattern guide",
-  "description": "A knitting pattern turned into a guided structure. Draft 0.1 for Phase 0. Values are copied exactly as written in the pattern; nothing is converted or calculated here. Written to fit strict structured outputs: every object lists all its properties as required and forbids others; optional values use null.",
+  "$id": "guided-knitting/guide-schema/0.2",
+  "title": "guide-schema",
+  "description": "A knitting pattern as a guided structure, built by code from the AI's marks and the pattern text. Values are copied as written; conversion and arithmetic happen when the guide is shown.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "build",
     "pattern",
     "options",
     "size_guide",
@@ -18,6 +19,8 @@
     "techniques",
     "charts",
     "sections",
+    "pieces",
+    "reminders",
     "links",
     "doubts"
   ],
@@ -25,7 +28,17 @@
     "schema_version": {
       "type": "string",
       "enum": [
-        "0.1"
+        "0.2"
+      ]
+    },
+    "build": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/build"
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "pattern": {
@@ -85,6 +98,18 @@
         "$ref": "#/$defs/section"
       }
     },
+    "pieces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/piece"
+      }
+    },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reminder"
+      }
+    },
     "links": {
       "type": "array",
       "items": {
@@ -100,7 +125,6 @@
   },
   "$defs": {
     "source": {
-      "description": "Where in the pattern this came from. quote is copied word for word (short: the key words, not whole pages).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -110,29 +134,37 @@
       ],
       "properties": {
         "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "description": "1-based PDF page number"
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "1-based PDF page"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "quote": {
-          "type": "string"
+          "type": "string",
+          "description": "Word for word from the pattern, short"
         },
         "from_picture": {
           "type": "boolean",
-          "description": "True when read from an image (chart, schematic, scanned page) rather than the text layer"
+          "description": "Read from an image rather than the text layer"
         }
-      }
+      },
+      "description": "Where in the pattern this came from."
     },
     "unit": {
       "anyOf": [
         {
+          "type": "string",
           "enum": [
             "stitches",
             "rows",
             "rounds",
             "row_pairs",
+            "repeats",
             "times",
             "cm",
             "mm",
@@ -143,27 +175,50 @@
             "oz",
             "balls",
             "skeins",
+            "pieces",
             "other"
-          ],
-          "type": "string"
+          ]
         },
         {
           "type": "null"
         }
       ]
     },
-    "choice_values": {
-      "description": "One entry per size, in the order of options.sizes. A string exactly as written (\"4½\", \"three\", \"65-70\", \"0\"), \"-\" when the pattern says it does not apply to that size, or null when the pattern gives no value.",
+    "per_size": {
       "type": "array",
       "items": {
-        "type": [
-          "string",
-          "null"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
         ]
+      },
+      "description": "One entry per size, in options.sizes order: the value as written, \"-\" when it does not apply to that size, null when the pattern gives none."
+    },
+    "by_choice": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "choice",
+          "by_size"
+        ],
+        "properties": {
+          "choice": {
+            "type": "string",
+            "description": "An id from options.choices[].values[].id"
+          },
+          "by_size": {
+            "$ref": "#/$defs/per_size"
+          }
+        }
       }
     },
-    "sized_value": {
-      "description": "A number that may differ by size and by an extra choice. Use exactly one of: all (same for every size), by_size, or by_choice (when it also depends on an extra choice such as yarn weight).",
+    "sized_alt": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -176,21 +231,26 @@
       "properties": {
         "text": {
           "type": "string",
-          "description": "The original text, for example \"92-96-100-108 sts\" or \"13 (15, 17, 19, 21)\""
+          "description": "The original text, e.g. \"92-96-100 sts\" or \"13 (15, 17)\""
         },
         "unit": {
           "$ref": "#/$defs/unit"
         },
         "all": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The same value for every size"
         },
         "by_size": {
           "anyOf": [
             {
-              "$ref": "#/$defs/choice_values"
+              "$ref": "#/$defs/per_size"
             },
             {
               "type": "null"
@@ -200,75 +260,165 @@
         "by_choice": {
           "anyOf": [
             {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "choice",
-                  "by_size"
-                ],
-                "properties": {
-                  "choice": {
-                    "type": "string",
-                    "description": "An id from options.choices[].values[].id"
-                  },
-                  "by_size": {
-                    "$ref": "#/$defs/choice_values"
-                  }
-                }
-              }
+              "$ref": "#/$defs/by_choice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When the value also depends on an extra choice such as yarn weight"
+        }
+      },
+      "description": "The same value in another unit, as the pattern also gives it (e.g. inches beside cm)."
+    },
+    "sized_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "unit",
+        "all",
+        "by_size",
+        "by_choice",
+        "from_picture",
+        "alt"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The original text, e.g. \"92-96-100 sts\" or \"13 (15, 17)\""
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "all": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The same value for every size"
+        },
+        "by_size": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/per_size"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "by_choice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/by_choice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When the value also depends on an extra choice such as yarn weight"
+        },
+        "from_picture": {
+          "type": "boolean"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_alt"
             },
             {
               "type": "null"
             }
           ]
         }
-      }
+      },
+      "description": "A value that may differ by size and choice. At most one of all/by_size/by_choice; none of them means the pattern gives no value. Values are copied, never converted or calculated."
     },
     "applies_to": {
       "anyOf": [
         {
+          "type": "object",
           "additionalProperties": false,
           "required": [
             "sizes",
-            "choices"
+            "choices",
+            "except"
           ],
           "properties": {
             "sizes": {
               "anyOf": [
                 {
+                  "type": "array",
                   "items": {
                     "type": "string"
-                  },
-                  "type": "array"
+                  }
                 },
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Size ids; null means all sizes"
             },
             "choices": {
               "anyOf": [
                 {
+                  "type": "array",
                   "items": {
                     "type": "string"
-                  },
-                  "type": "array"
+                  }
                 },
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Choice value ids; null means all"
+            },
+            "except": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "size",
+                  "choice"
+                ],
+                "properties": {
+                  "size": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "choice": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "description": "Combinations excluded, e.g. fingering M"
             }
-          },
-          "type": "object"
+          }
         },
         {
           "type": "null"
         }
       ],
-      "description": "Which sizes and extra choices this applies to. null means all."
+      "description": "Which sizes and choices this applies to. null means all."
     },
     "pattern": {
       "type": "object",
@@ -291,31 +441,46 @@
           "type": "string"
         },
         "designer": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "publisher": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "pattern_number": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "language": {
-          "type": "string",
-          "description": "Language of the pattern text, e.g. en"
+          "type": "string"
         },
         "translated_from": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "units_in_source": {
@@ -328,26 +493,37 @@
           ]
         },
         "garment": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "construction": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Short, e.g. \"top down, in the round, raglan\""
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "made_to_measure": {
           "type": "boolean",
-          "description": "True when stitch counts are placeholders the knitter calculates (e.g. [A], [G-1])"
+          "description": "Stitch counts are placeholders the knitter works out"
         },
         "summary": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -363,7 +539,6 @@
       "properties": {
         "sizes": {
           "type": "array",
-          "description": "In the order the pattern lists them. A one-size pattern has one entry.",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -383,11 +558,10 @@
         },
         "size_notation": {
           "type": "string",
-          "description": "How the pattern writes per-size values, e.g. \"dash list\", \"a (b, c)\", \"a (b) c (d)\", \"(a, b, c) [d, e, f] {g, h, i}\""
+          "description": "How per-size values are written, e.g. \"dash list\", \"a (b, c)\", \"a (b) c (d)\""
         },
         "choices": {
           "type": "array",
-          "description": "Up to two choices besides size, e.g. yarn weight or colour version or left/right foot.",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -423,7 +597,8 @@
                 }
               }
             }
-          }
+          },
+          "description": "At most two choices besides size"
         }
       }
     },
@@ -442,13 +617,18 @@
             "table",
             "image",
             "both",
+            "list",
             "none"
           ]
         },
         "page": {
-          "type": [
-            "integer",
-            "null"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "measurements": {
@@ -463,8 +643,7 @@
             ],
             "properties": {
               "name": {
-                "type": "string",
-                "description": "e.g. Chest, Length, Sleeve, To fit"
+                "type": "string"
               },
               "value": {
                 "$ref": "#/$defs/sized_value"
@@ -484,9 +663,11 @@
         "text",
         "stitches",
         "rows",
+        "rows_unit",
         "over",
         "stitch_pattern",
         "condition",
+        "applies_to",
         "source"
       ],
       "properties": {
@@ -494,36 +675,74 @@
           "type": "string"
         },
         "stitches": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "rows": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rows_unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "rows",
+                "rounds",
+                "round_pairs"
+              ]
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "over": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "As written, e.g. \"10 cm\", \"4 in\", \"1 in\""
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "As written, e.g. \"10 cm\", \"4 in\""
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "stitch_pattern": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "condition": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g. \"after felting\", \"with 2 strands\""
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "e.g. \"after felting\""
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -539,9 +758,10 @@
         "size_mm",
         "size_us",
         "size_uk",
-        "kind",
+        "kinds",
         "length",
         "use",
+        "applies_to",
         "source"
       ],
       "properties": {
@@ -552,47 +772,70 @@
           "type": "string"
         },
         "size_mm": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "As written, e.g. \"4,5\" or \"3.5\""
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "size_us": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "size_uk": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "UK or Canadian number, which runs opposite to mm"
-        },
-        "kind": {
-          "type": "string",
-          "enum": [
-            "circular",
-            "straight",
-            "double_pointed",
-            "crochet_hook",
-            "other"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "circular",
+              "straight",
+              "double_pointed",
+              "crochet_hook",
+              "other"
+            ]
+          }
         },
         "length": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Cable length as written, e.g. \"80 cm\", \"16-inch\""
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "use": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -611,7 +854,9 @@
         "colour",
         "strand_group",
         "alternative_group",
+        "alternatives_text",
         "amount",
+        "applies_to",
         "source"
       ],
       "properties": {
@@ -622,47 +867,83 @@
           "type": "string"
         },
         "weight": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "As written, e.g. \"yarn group A\", \"DK\", \"Aran\", \"fingering\""
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "fibre": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "ball": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Ball size as written, e.g. \"50 g = approx 167 m\", \"142 yards/50 grams\""
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "colour": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "strand_group": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Yarns with the same strand_group are held together"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Yarns sharing a strand_group are held together"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "alternative_group": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Yarns with different alternative_group values are alternatives (\"or use\")"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Different alternative_group values are alternatives (\"or use\")"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "alternatives_text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Alternatives given without a named yarn, e.g. \"yarn group A + A or C\""
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "amount": {
           "$ref": "#/$defs/sized_value"
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -674,11 +955,26 @@
       "additionalProperties": false,
       "required": [
         "text",
+        "amount",
+        "applies_to",
         "source"
       ],
       "properties": {
         "text": {
           "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -702,95 +998,7 @@
           "type": "string"
         },
         "defined_in_pattern": {
-          "type": "boolean",
-          "description": "False when used but not defined; then meaning is a standard meaning or empty"
-        },
-        "source": {
-          "$ref": "#/$defs/source"
-        }
-      }
-    },
-    "technique": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "text",
-        "source"
-      ],
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string",
-          "description": "As the pattern names it, e.g. \"DECREASE TIP\", \"FRinc\""
-        },
-        "text": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/source"
-        }
-      }
-    },
-    "chart": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "page",
-        "kind",
-        "applies_to",
-        "start_point",
-        "written_alternative",
-        "notes",
-        "source"
-      ],
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "kind": {
-          "type": "string",
-          "enum": [
-            "image",
-            "vector",
-            "text"
-          ]
-        },
-        "applies_to": {
-          "$ref": "#/$defs/applies_to"
-        },
-        "start_point": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/sized_value"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "written_alternative": {
           "type": "boolean"
-        },
-        "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -807,28 +1015,249 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Used as {name} in the step text"
+          "description": "Used as {name} in the text"
         },
         "value": {
           "$ref": "#/$defs/sized_value"
         }
       }
     },
+    "technique": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "text",
+        "slots",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slot"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "page",
+        "kind",
+        "applies_to",
+        "width",
+        "height",
+        "start_points",
+        "written_alternative",
+        "notes",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "vector",
+            "text"
+          ]
+        },
+        "applies_to": {
+          "$ref": "#/$defs/applies_to"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "section_id",
+              "label",
+              "value"
+            ],
+            "properties": {
+              "section_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "label": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "value": {
+                "$ref": "#/$defs/sized_value"
+              }
+            }
+          },
+          "description": "Where to start, per section or piece where it differs"
+        },
+        "written_alternative": {
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "total",
+        "parts",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "stitches",
+            "rows_worked",
+            "other"
+          ]
+        },
+        "total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "$ref": "#/$defs/sized_value"
+              }
+            }
+          },
+          "description": "e.g. sleeve, front, sleeve, back"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "schedule": {
-      "description": "Something done repeatedly while the step is worked, e.g. AT THE SAME TIME decreases, buttonholes.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "action",
+        "slots",
         "every",
         "every_unit",
+        "on_rows",
         "times",
         "first_at",
+        "until",
+        "checkpoint",
         "source"
       ],
       "properties": {
         "action": {
-          "type": "string"
+          "type": "string",
+          "description": "What to do, e.g. \"decrease 1 st each side\""
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slot"
+          }
         },
         "every": {
           "anyOf": [
@@ -843,19 +1272,30 @@
         "every_unit": {
           "anyOf": [
             {
+              "type": "string",
               "enum": [
                 "rows",
                 "rounds",
                 "cm",
                 "in",
                 "other"
-              ],
-              "type": "string"
+              ]
             },
             {
               "type": "null"
             }
           ]
+        },
+        "on_rows": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "An explicit list of rows, e.g. \"rows 32, 40, 48\""
         },
         "times": {
           "anyOf": [
@@ -877,10 +1317,284 @@
             }
           ]
         },
+        "until": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "stitches"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "stitches": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/sized_value"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "e.g. \"to 62 sts\""
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/checkpoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "source": {
           "$ref": "#/$defs/source"
         }
+      },
+      "description": "Something done repeatedly while working, e.g. AT THE SAME TIME decreases or buttonholes."
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "count",
+        "length",
+        "until_row",
+        "measured_from",
+        "ending",
+        "match"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "rows",
+            "rounds",
+            "repeats",
+            "length",
+            "row_number",
+            "match",
+            "none"
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "length": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "until_row": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "measured_from": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "e.g. \"from the cast-on edge\""
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ending": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "e.g. \"ending with a WS row\""
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "match": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "step_id"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "step_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "e.g. \"until the same row as the back\""
+        }
       }
+    },
+    "repeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rows_in_repeat",
+        "times",
+        "until_row",
+        "until_text",
+        "includes_first",
+        "includes_earlier_text"
+      ],
+      "properties": {
+        "rows_in_repeat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "times": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "until_row": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sized_value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "until_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "includes_first": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether the count includes the first time; null when ambiguous"
+        },
+        "includes_earlier_text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "When a total counts rows from earlier steps too"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "based_on": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "section_id",
+        "from_text",
+        "to_text",
+        "changes"
+      ],
+      "properties": {
+        "section_id": {
+          "type": "string"
+        },
+        "from_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "description": "\"Work as for the front from ** to **, but ...\""
     },
     "step": {
       "type": "object",
@@ -897,6 +1611,8 @@
         "schedules",
         "technique_ids",
         "chart_ids",
+        "based_on",
+        "optional",
         "source",
         "confidence"
       ],
@@ -919,7 +1635,7 @@
         },
         "text": {
           "type": "string",
-          "description": "The instruction with per-size numbers replaced by {slot} names. Everything else as written."
+          "description": "The instruction as written, with per-size values replaced by {slot} names"
         },
         "slots": {
           "type": "array",
@@ -931,92 +1647,12 @@
           "$ref": "#/$defs/applies_to"
         },
         "target": {
-          "description": "What the step's counter counts towards.",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "kind",
-            "count",
-            "length",
-            "until_row"
-          ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [
-                "rows",
-                "rounds",
-                "repeats",
-                "length",
-                "row_number",
-                "none"
-              ]
-            },
-            "count": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/sized_value"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "length": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/sized_value"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "until_row": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/sized_value"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "For absolute row numbers, e.g. \"until row 24\""
-            }
-          }
+          "$ref": "#/$defs/target"
         },
         "repeat": {
           "anyOf": [
             {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "rows_in_repeat",
-                "times",
-                "includes_first"
-              ],
-              "properties": {
-                "rows_in_repeat": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/sized_value"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "times": {
-                  "$ref": "#/$defs/sized_value"
-                },
-                "includes_first": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ],
-                  "description": "Whether the count includes the first time. null when the pattern is ambiguous."
-                }
-              }
+              "$ref": "#/$defs/repeat"
             },
             {
               "type": "null"
@@ -1026,13 +1662,12 @@
         "checkpoint": {
           "anyOf": [
             {
-              "$ref": "#/$defs/sized_value"
+              "$ref": "#/$defs/checkpoint"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Stitch count stated after the step"
+          ]
         },
         "schedules": {
           "type": "array",
@@ -1051,6 +1686,19 @@
           "items": {
             "type": "string"
           }
+        },
+        "based_on": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/based_on"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optional": {
+          "type": "boolean"
         },
         "source": {
           "$ref": "#/$defs/source"
@@ -1074,7 +1722,6 @@
         "instances",
         "mirrored",
         "implied",
-        "reminders",
         "steps",
         "source"
       ],
@@ -1090,21 +1737,14 @@
           "items": {
             "type": "string"
           },
-          "description": "Labels when worked more than once, e.g. [\"1st sleeve\", \"2nd sleeve\"]; empty when worked once"
+          "description": "Labels when worked more than once"
         },
         "mirrored": {
           "type": "boolean"
         },
         "implied": {
           "type": "boolean",
-          "description": "True when the pattern does not state the repeat (e.g. the second sleeve is never mentioned)"
-        },
-        "reminders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/schedule"
-          },
-          "description": "Running instructions for the whole section, e.g. buttonholes, I-cord edge"
+          "description": "The repeat is not stated in the pattern"
         },
         "steps": {
           "type": "array",
@@ -1116,6 +1756,114 @@
           "$ref": "#/$defs/source"
         }
       }
+    },
+    "piece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "section_ids",
+        "instances",
+        "mirrored",
+        "implied"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "section_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "choice"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "choice": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "description": "e.g. 1st slipper = left foot"
+        },
+        "mirrored": {
+          "type": "boolean"
+        },
+        "implied": {
+          "type": "boolean"
+        }
+      },
+      "description": "A piece made of several sections and worked more than once, e.g. two slippers."
+    },
+    "reminder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "schedule",
+        "from_step",
+        "until_step",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "schedule": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/schedule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "from_step": {
+          "type": "string"
+        },
+        "until_step": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null: until the end"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "description": "A running instruction across steps or sections, e.g. I-cord edge, buttonholes every 8 cm."
     },
     "link": {
       "type": "object",
@@ -1134,14 +1882,17 @@
           "type": "string"
         },
         "page": {
-          "type": [
-            "integer",
-            "null"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "outside_pattern": {
-          "type": "boolean",
-          "description": "True when steps depend on it (e.g. a sock guide web page)"
+          "type": "boolean"
         }
       }
     },
@@ -1151,7 +1902,9 @@
       "required": [
         "kind",
         "message",
+        "origin",
         "step_ids",
+        "target",
         "source"
       ],
       "properties": {
@@ -1173,11 +1926,74 @@
           "type": "string",
           "description": "Plain English, for the knitter"
         },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "ai",
+            "code",
+            "person"
+          ]
+        },
         "step_ids": {
           "type": "array",
           "items": {
             "type": "string"
           }
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sizes",
+                "choices"
+              ],
+              "properties": {
+                "path": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "e.g. yarns[2].amount"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "sizes": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "choices": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "source": {
           "anyOf": [
@@ -1188,6 +2004,33 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pipeline",
+        "model",
+        "created"
+      ],
+      "properties": {
+        "pipeline": {
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created": {
+          "type": "string"
         }
       }
     }
