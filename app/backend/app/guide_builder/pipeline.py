@@ -292,6 +292,15 @@ class Builder:
             content += [ai.text_part(f"=== Page {n} image ==="), ai.image_part(self.images[n])]
         ans = self.client.json(prompts.OUTLINE, content, schemas.AI_OUTLINE, "pattern_outline")
         self.usage.add(ans)
+        if not ans.data.get("sections") or not ans.data.get("sizes"):
+            # An outline with no sections or sizes is useless; ask once more before going on.
+            retry = self.client.json(prompts.OUTLINE + "\n\nThe previous answer listed no sections or no sizes. "
+                                     "Every pattern has at least one size and one construction section.",
+                                     content, schemas.AI_OUTLINE, "pattern_outline")
+            self.usage.add(retry)
+            if retry.data.get("sections"):
+                return retry.data
+            self.errors.append("the outline listed no sections")
         return ans.data
 
     def _split_sections(self) -> list[dict]:

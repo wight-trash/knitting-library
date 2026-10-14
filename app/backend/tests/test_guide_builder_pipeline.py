@@ -40,6 +40,27 @@ class LocateTests(unittest.TestCase):
         self.assertIsNone(locate(None, self.TEXT))
 
 
+class AnswerShapeTests(unittest.TestCase):
+    schema = {"required": ["sizes", "sections"]}
+
+    def test_unwraps_properties_and_single_outer_key(self):
+        from app.guide_builder.ai import _shape
+        self.assertEqual(_shape({"properties": {"sizes": ["S"], "sections": []}}, self.schema), ({"sizes": ["S"], "sections": []}, []))
+        self.assertEqual(_shape({"outline": {"sizes": ["S"], "sections": []}}, self.schema)[1], [])
+
+    def test_echoed_schema_is_rejected(self):
+        from app.guide_builder.ai import _shape
+        echoed = {"type": "object", "properties": {"sizes": {"type": "array"}, "sections": {"type": "array"}},
+                  "required": ["sizes", "sections"]}
+        self.assertTrue(_shape(echoed, self.schema)[1])
+
+    def test_schema_headers_are_dropped(self):
+        from app.guide_builder.ai import _shape
+        data, missing = _shape({"$schema": "x", "$id": "y", "sizes": ["S"], "sections": []}, self.schema)
+        self.assertEqual(missing, [])
+        self.assertNotIn("$schema", data)
+
+
 class ProgressTests(unittest.TestCase):
     def test_percent_rises_through_the_stages(self):
         seq = [Event("read", ""), Event("pictures", "", 1, 2), Event("outline", ""), Event("sections", "", 0, 4),
