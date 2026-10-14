@@ -415,12 +415,9 @@ silently dropped.
 
 **Cost:** OpenRouter prices checked on 14 October 2026:
 
-| Model | Input $/M tokens | Output $/M tokens | Per 6-page pattern |
-| --- | --- | --- | --- |
-| Claude Sonnet 5.5 | 2.00 | 10.00 | about $0.11 |
-| GPT-6 Sol | 2.00 | 10.00 | about $0.08 |
-| Gemini 3.8 Flash | 0.75 | 3.75 | about $0.03 |
-| Claude Haiku 5.5 | 0.10 | 0.50 | about $0.006 |
+Measured in Phase 0 with Claude Haiku 5.5 ($0.10 in and $0.50 out per million tokens): the pipeline costs **1 to 3.5
+US cents per pattern**. The earlier estimates in this section assumed about 4,000 output tokens per guide; the single
+call actually wrote about 40,000. Sonnet and Opus are ruled out on cost.
 
 * Mary's 25 patterns average about 8 pages, so building all of them once costs a few dollars at most.
 * The model is chosen after the Phase 0 trial.
@@ -476,6 +473,31 @@ September, none so far in October), and most of those files have not changed ups
 Each phase ends with something to try on the dev stack. Parts go live behind their own switch when ready.
 
 ## Phase 0: test set, reading tool and model trial
+
+**Status: done, 15 October 2026.** Results:
+* **Test set:** 12 patterns with hand-checked reference guides (private). They found real errors in 7 of the
+  patterns, and confirmed the DROPS arithmetic.
+* **Reading tool:** poppler word positions plus our own reading order ([phase0-pdf-reading.md](phase0-pdf-reading.md)).
+* **Model:** Claude Haiku 5.5 through OpenRouter. Jeff ruled out Sonnet and Opus on cost; Qwen 3.8 Flash was tried
+  and was slower and less reliable.
+* **Format:** 0.2 ([GUIDE-FORMAT.md](GUIDE-FORMAT.md)).
+* **Pipeline:** built ahead of plan, in `app/backend/app/guide_builder/` (Phase 4's engine, not yet used by any
+  screen).
+
+Second full run, against a single call:
+
+| | Single call | Pipeline |
+| --- | --- | --- |
+| Time, 12 patterns | 35 min | 9.6 min |
+| Cost, 12 patterns | $0.31 | $0.20 |
+| Valid guides | 9 of 12 | 12 of 12 |
+| Longest gap between progress updates | none sent | 3 s |
+| Per-size values found | 0.84 | 0.79 |
+| Per-size values correct | 0.94 | 0.91 |
+
+Accuracy work is parked for now: the scanned and Canva patterns, and values that depend on yarn weight. Ideas are
+in the commit history (1d8d162).
+
 
 **Test set**, kept private and never committed:
 
