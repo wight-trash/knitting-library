@@ -59,7 +59,7 @@ Expect a few minutes a month. Most months nothing needs doing.
 git push --force-with-lease origin jeff
 ```
 
-The weekly workflow runs the check and fails if the rebase would conflict. GitHub emails you about failed runs. The push builds new images. Then update the stack in Arcane.
+The weekly workflow (Mondays, on `jeff`, the default branch) runs the check and fails if the rebase would conflict. GitHub emails you about failed runs. The push builds new images. Then update the stack in Arcane.
 
 If a rebase stops on a conflict, git names the file. Keep upstream's new code, put the patch's lines back, then `git add` and `git rebase --continue`.
 
@@ -95,9 +95,11 @@ possibly the `importer` account, could no longer sign in. Moving to 5 needs `_ha
 the library image runs `.github/scripts/kl-smoke.py` (sign-in, PDF upload, page pictures), the importer image
 runs `python -m app.selfcheck` (Chromium prints a PDF, poppler reads it).
 
-**Weekly updates.** `.github/dependabot.yml` asks for update pull requests against `dev` for every package list,
-base image and workflow action. Dependabot reads that file only from the default branch, so it is off while the
-default branch is `main`.
+**Monthly updates.** `.github/dependabot.yml` asks for update pull requests against `dev` for every package list,
+base image and workflow action, once a month. Each pull request runs the same tests and image checks as a push,
+without publishing anything, so the result shows on the pull request. Merge the green ones into `dev`, try the
+dev stack, then promote. Dependabot alerts (emails about known vulnerabilities) are on. Dependabot security
+updates are off on purpose: they open pull requests against the default branch, `jeff`, which would skip `dev`.
 
 ## Tell upstream
 
@@ -110,8 +112,6 @@ Knitting Library has its own login behind Pangolin, so Mary signs in twice. Addi
 ## Status
 
 `sync-upstream.sh` was tested in three cases against local copies: no change, clean rebase, conflict. Both image builds have run on `jeff`.
-The `dev` image tags have not been built yet.
 
-The weekly upstream check has never run. GitHub runs scheduled workflows only from the default branch,
-and this fork's default branch is `main`, which does not have the workflow. Making `jeff` the default
-branch would fix it.
+`jeff` has been the default branch since 14 October 2026, so the weekly upstream check runs. It was run by
+hand that day and passed.
