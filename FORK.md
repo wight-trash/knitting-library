@@ -63,6 +63,28 @@ The weekly workflow (Mondays, on `jeff`, the default branch) runs the check and 
 
 If a rebase stops on a conflict, git names the file. Keep upstream's new code, put the patch's lines back, then `git add` and `git rebase --continue`.
 
+## Guided knitting (in progress)
+
+Plan: [`docs/guided-knitting/PLAN.md`](docs/guided-knitting/PLAN.md). Everything is behind a switch that is off by
+default (Settings, Guided versions), so the live library looks the same until it is turned on.
+
+| Where | What |
+| --- | --- |
+| `app/backend/app/guide_builder/` | Builds a guide from a pattern PDF: reading, AI outline and sections, numbers copied from the pattern, checks, progress events. No app dependencies. |
+| `app/backend/app/guided/` | The app side: settings (`fork_*` rows in `app_settings`), background builds that survive restarts, `/api/guided/...` |
+| `app/backend/app/fork_migrations.py` | The fork's own tables (`guide_jobs`, `guides`) and schema version; upstream's schema code is not edited |
+| `app/frontend/src/fork/` | The fork's own API calls, strings and screens (the Guided tab, the settings card) |
+| `.github/workflows/backend-tests.yml` | Runs all backend tests on every push and pull request |
+
+Edits to upstream files, all marked `fork`:
+* `app/backend/app/main.py`: 3 lines (router, start-up);
+* `app/backend/requirements.txt`: `pypdf`;
+* `app/frontend/src/pages/RecipeViewer.jsx`: imports, the Guided tab and one branch;
+* `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line.
+
+Guides are built with the AI address and key from the app's own Settings, AI page, and the model chosen under
+Settings, Guided versions (default Claude Haiku 5.5 through OpenRouter).
+
 ## Package updates
 
 The fork runs newer packages than upstream. These commits change upstream files, so they are the ones most

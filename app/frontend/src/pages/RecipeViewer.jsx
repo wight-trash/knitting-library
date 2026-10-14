@@ -14,6 +14,10 @@ import RecipeReader, { RecipeTextEditor } from '../components/RecipeReader';
 import TaxonomyField from '../components/TaxonomyManager';
 import { getLanguageLocale } from '../utils/translations';
 import './RecipeViewer.css';
+import { ListChecks } from 'lucide-react'; // fork: guided tab icon
+import GuidedPanel from '../fork/guided/GuidedPanel'; // fork: guided versions
+import useGuidedStatus from '../fork/guided/useGuidedStatus'; // fork: show the Guided tab only when enabled
+import { ft } from '../fork/strings'; // fork: guided tab label
 
 export default function RecipeViewer({ recipeId, initialViewMode = 'original', onBack, onDeleted, onTextJobQueued }) {
   const { t, language, user } = useApp();
@@ -42,6 +46,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [addingImages, setAddingImages] = useState(false);
   const [viewMode, setViewMode] = useState(initialState.viewMode);
+  const guidedStatus = useGuidedStatus(); // fork: guided versions
   const [textVersion, setTextVersion] = useState(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const { showText: showTextView } = recipeViewAvailability(viewMode, aiEnabled, !!textVersion?.exists);
@@ -360,7 +365,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
         const saved = mergeLocalViewerPresentation(resolveViewerResume(localSaved, serverSaved), localSaved);
         const resume = normalizeViewerResume(saved, initialViewMode);
         // A saved tab or queue link must not reopen a disabled AI view.
-        resume.viewMode = recipeViewAvailability(resume.viewMode, !!text.ai_enabled, !!text.exists).viewMode;
+        if (resume.viewMode !== 'guided') resume.viewMode = recipeViewAvailability(resume.viewMode, !!text.ai_enabled, !!text.exists).viewMode; // fork: guided is checked below
         setAiEnabled(!!text.ai_enabled);
         setTextVersion(text);
         pendingScrollY.current = resume.scrollY;
@@ -424,9 +429,10 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
 
   useEffect(() => {
     if (loading) return;
+    if (viewMode === 'guided') { if (guidedStatus && !guidedStatus.enabled) setViewMode('original'); return; } // fork: guided tab
     const availableMode = recipeViewAvailability(viewMode, aiEnabled, !!textVersion?.exists).viewMode;
     if (availableMode !== viewMode) setViewMode(availableMode);
-  }, [loading, aiEnabled, textVersion?.exists, viewMode]);
+  }, [loading, aiEnabled, textVersion?.exists, viewMode, guidedStatus]);
 
   useEffect(() => {
     if (loading || !aiEnabled || viewMode !== 'review') return;
@@ -894,7 +900,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
         </div>
       </div>
 
-      {showTextView && <div className="viewer-mode-tabs" role="tablist" aria-label={t('recipeViewTabs')}>
+      {(showTextView || guidedStatus?.enabled) && <div className="viewer-mode-tabs" role="tablist" aria-label={t('recipeViewTabs')}>
         <button
           className={`viewer-mode-tab ${viewMode === 'original' ? 'active' : ''}`}
           onClick={() => updateViewMode('original')}
@@ -904,7 +910,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
           <LucideImage size={16} />
           <span>{t('originalView')}</span>
         </button>
-        <button
+        {showTextView && <button /* fork: the bar can show for Guided alone */
           className={`viewer-mode-tab ${viewMode === 'text' ? 'active' : ''}`}
           onClick={() => updateViewMode('text')}
           role="tab"
@@ -912,7 +918,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
         >
           <FileText size={16} />
           <span>{t('textVersion')}</span>
-        </button>
+        </button>}
         {aiEnabled && <button
           className={`viewer-mode-tab viewer-mode-tab--review ${viewMode === 'review' ? 'active' : ''}`}
           onClick={() => updateViewMode('review')}
@@ -922,6 +928,18 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
           <CheckCircle2 size={16} />
           <span>{t('reviewText')}</span>
         </button>}
+        {/* fork: Guided tab, shown only when guided versions are switched on */}
+        {guidedStatus?.enabled && (
+          <button
+            className={`viewer-mode-tab ${viewMode === 'guided' ? 'active' : ''}`}
+            onClick={() => updateViewMode('guided')}
+            role="tab"
+            aria-selected={viewMode === 'guided'}
+          >
+            <ListChecks size={16} />
+            <span>{ft('guidedTab')}</span>
+          </button>
+        )}
       </div>}
 
       {viewMode === 'original' && recipe.file_type === 'images' && recipe.has_pdf && recipe.has_images && (
@@ -945,7 +963,9 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
 
       <div className="viewer-body">
         <div className="viewer-content">
-          {viewMode === 'text' ? (
+          {viewMode === 'guided' ? ( /* fork: guided versions */
+            <GuidedPanel recipeId={recipeId} recipe={recipe} />
+          ) : viewMode === 'text' ? (
             <TextVersionPanel
               t={t}
               recipeId={recipeId}
