@@ -1,5 +1,5 @@
 """Importer against a REAL Knitting Library (patched) and a pretend DROPS. Prints what ended up in the library."""
-import json, sys, tempfile, time
+import json, os, sys, tempfile, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
@@ -17,7 +17,7 @@ if c.get("/api/setup/status").json().get("setup_required"):
     c.post("/api/admin/users", json={"username": "importer", "password": "importer-pass-1234"}, headers={"X-Session-Token": tok})
 
 s = Settings(kl_url=KL, kl_public_url="https://knit.wighttrash.uk", kl_username="importer", kl_password="importer-pass-1234",
-             data_dir=Path(tempfile.mkdtemp()), drops_min_interval=0, chromium_path="/opt/pw-browsers/chromium")
+             data_dir=Path(tempfile.mkdtemp()), drops_min_interval=0, chromium_path=os.environ.get("CHROMIUM_PATH", "/usr/bin/chromium"))
 app = create_app(s, fetcher=DropsFetcher(s, transport=httpx.MockTransport(drops_handler("ok"))))
 H = {"X-Requested-With": "knit-import"}
 with TestClient(app) as t:

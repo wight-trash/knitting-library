@@ -1,6 +1,7 @@
 """Shared test set-up: a pretend DROPS website that serves the saved fixture pages."""
 from __future__ import annotations
 
+import os
 import urllib.parse
 from pathlib import Path
 
@@ -10,7 +11,9 @@ import pytest
 from app.config import Settings
 
 FIX = Path(__file__).parent / "fixtures"
-CHROMIUM = "/opt/pw-browsers/chromium"
+# The browser that prints PDFs. Set CHROMIUM_PATH to run the tests that need it on another machine.
+CHROMIUM = os.environ.get("CHROMIUM_PATH", "/usr/bin/chromium")
+needs_chromium = pytest.mark.skipif(not Path(CHROMIUM).exists(), reason=f"no Chromium at {CHROMIUM}; set CHROMIUM_PATH")
 
 
 def drops_handler(mode: str = "ok"):

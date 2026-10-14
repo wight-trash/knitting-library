@@ -13,7 +13,7 @@ from tests.fakekl import FakeKL
 mode = os.environ.get("DROPS_MODE", "ok")
 s = Settings(kl_url="http://kl.test", kl_public_url="https://knit.example", kl_password="pw",
              data_dir=Path(tempfile.mkdtemp()), drops_min_interval=float(os.environ.get("INTERVAL", "0.8")),
-             chromium_path="/opt/pw-browsers/chromium")
+             chromium_path=os.environ.get("CHROMIUM_PATH", "/usr/bin/chromium"))
 kl = FakeKL(duplicate=bool(os.environ.get("DUP")))
 app = create_app(s, fetcher=DropsFetcher(s, transport=httpx.MockTransport(drops_handler(mode))),
                  kl=KnittingLibrary(s, transport=kl.transport()))
