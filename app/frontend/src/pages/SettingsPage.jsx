@@ -25,6 +25,10 @@ import {
 } from '../utils/api';
 import './SettingsPage.css';
 
+import GuidedSettingsSection from '../fork/guided/GuidedSettingsSection'; // fork: guided versions
+import { ListChecks } from 'lucide-react'; // fork: guided versions icon
+import { ft } from '../fork/strings'; // fork
+
 export default function SettingsPage({ onBack }) {
   const { user, t } = useApp();
   const [activeSection, setActiveSection] = useState('appearance');
@@ -39,6 +43,7 @@ export default function SettingsPage({ onBack }) {
       { id: 'logs',          icon: <Terminal size={18} />,    label: t('adminLogs'), sub: t('settingsLogsSub') },
       { id: 'mail',          icon: <Mail size={18} />,        label: t('adminMail'), sub: t('settingsMailSub') },
       { id: 'ai',            icon: <Bot size={18} />,         label: t('adminAI'), sub: t('settingsAISub') },
+      { id: 'guided',        icon: <ListChecks size={18} />,  label: ft('settingsNav'), sub: ft('settingsNavSub') }, // fork
       { id: 'recipes',       icon: <FileText size={18} />,    label: t('adminRecipes'), sub: t('settingsRecipesSub') },
       { id: 'twofa',         icon: <ShieldCheck size={18} />, label: t('admin2FA'), sub: t('settingsTwoFASub') },
       { id: 'announcements', icon: <Megaphone size={18} />,   label: t('updateNotes'), sub: t('settingsAnnouncementsSub') },
@@ -114,6 +119,7 @@ export default function SettingsPage({ onBack }) {
           {user?.is_admin && activeSection === 'logs'          && <LogsSection />}
           {user?.is_admin && activeSection === 'mail'          && <MailSection />}
           {user?.is_admin && activeSection === 'ai'            && <AISection />}
+          {user?.is_admin && activeSection === 'guided'        && <GuidedSettingsSection />} {/* fork */}
           {user?.is_admin && activeSection === 'recipes'       && <RecipesSection />}
           {user?.is_admin && activeSection === 'twofa'         && <TwoFASection />}
           {user?.is_admin && activeSection === 'announcements' && <AnnouncementsSection />}

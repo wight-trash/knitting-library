@@ -13,6 +13,10 @@ import RepairPdfModal from '../components/RepairPdfModal';
 import TaxonomyField from '../components/TaxonomyManager';
 import { getLanguageLocale } from '../utils/translations';
 import './RecipeViewer.css';
+import { ListChecks } from 'lucide-react'; // fork: guided tab icon
+import GuidedPanel from '../fork/guided/GuidedPanel'; // fork: guided versions
+import useGuidedStatus from '../fork/guided/useGuidedStatus'; // fork: show the Guided tab only when enabled
+import { ft } from '../fork/strings'; // fork: guided tab label
 
 export default function RecipeViewer({ recipeId, initialViewMode = 'original', onBack, onDeleted, onTextJobQueued }) {
   const { t, language, user } = useApp();
@@ -41,6 +45,7 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [addingImages, setAddingImages] = useState(false);
   const [viewMode, setViewMode] = useState(initialState.viewMode);
+  const guidedStatus = useGuidedStatus(); // fork: guided versions
   const [textVersion, setTextVersion] = useState(null);
   const [textLoading, setTextLoading] = useState(false);
   const [reviewSession, setReviewSession] = useState(null);
@@ -905,6 +910,18 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
           <CheckCircle2 size={16} />
           <span>{t('reviewText')}</span>
         </button>
+        {/* fork: Guided tab, shown only when guided versions are switched on */}
+        {guidedStatus?.enabled && (
+          <button
+            className={`viewer-mode-tab ${viewMode === 'guided' ? 'active' : ''}`}
+            onClick={() => updateViewMode('guided')}
+            role="tab"
+            aria-selected={viewMode === 'guided'}
+          >
+            <ListChecks size={16} />
+            <span>{ft('guidedTab')}</span>
+          </button>
+        )}
       </div>
 
       {viewMode === 'original' && recipe.file_type === 'images' && recipe.has_pdf && recipe.has_images && (
@@ -928,7 +945,9 @@ export default function RecipeViewer({ recipeId, initialViewMode = 'original', o
 
       <div className="viewer-body">
         <div className="viewer-content">
-          {viewMode === 'text' ? (
+          {viewMode === 'guided' ? ( /* fork: guided versions */
+            <GuidedPanel recipeId={recipeId} recipe={recipe} />
+          ) : viewMode === 'text' ? (
             <TextVersionPanel
               t={t}
               recipeId={recipeId}
