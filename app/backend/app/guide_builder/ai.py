@@ -57,6 +57,25 @@ def text_part(text: str) -> dict:
     return {"type": "text", "text": text}
 
 
+def _shape(parsed: dict, schema: dict) -> tuple[dict, list[str]]:
+    """Unwrap common wrappers and list required top-level keys that are missing. Models in plain JSON mode sometimes
+    nest the data under "properties" or one outer key, or echo the schema itself."""
+    required = list(schema.get("required") or [])
+    if required and not any(k in parsed for k in required):
+        inner = parsed.get("properties")
+        if isinstance(inner, dict) and any(k in inner for k in required) and not all(isinstance(v, dict) and "type" in v for v in inner.values()):
+            parsed = inner
+        elif len(parsed) == 1 and isinstance(next(iter(parsed.values())), dict):
+            parsed = next(iter(parsed.values()))
+    for junk in ("$schema", "$id", "$defs", "additionalProperties"):
+        parsed.pop(junk, None)
+    missing = [k for k in required if k not in parsed]
+    echoed = isinstance(parsed.get("properties"), dict) and isinstance(parsed.get("required"), list)
+    if echoed:
+        missing = missing or ["(the answer repeated the schema instead of giving data)"]
+    return parsed, missing
+
+
 def _strip_fences(s: str) -> str:
     s = s.strip()
     s = re.sub(r"^```(?:json)?\s*", "", s)
@@ -96,8 +115,32 @@ class Client:
         raise AIError(f"gave up after {self.cfg.retries + 1} tries ({last})")
 
     def json(self, system: str, content: list[dict], schema: dict, name: str, *, max_tokens: int | None = None,
-             reasoning_effort: str | None = "default") -> Answer:
-        """Ask for a JSON answer matching `schema`. Raises AIError when no usable JSON comes back."""
+             reasoning_effort: str | None = "default", attempts: int = 2) -> Answer:
+        """Ask for a JSON answer matching `schema`. Retries once when the answer is not JSON or lacks required fields.
+        Raises AIError when no usable JSON comes back."""
+        note = ""
+        for attempt in range(attempts):
+            try:
+                ans = self._json_once(system + note, content, schema, name, max_tokens=max_tokens,
+                                      reasoning_effort=reasoning_effort)
+            except AIError as exc:
+                if attempt + 1 >= attempts or "cut off" in str(exc):
+                    raise
+                note = ("\n\nYour previous answer could not be used: " + str(exc) +
+                        ". Reply with the data as one JSON object, not the schema.")
+                continue
+            data, missing = _shape(ans.data, schema)
+            ans.data = data
+            if not missing or attempt + 1 >= attempts:
+                if missing:
+                    raise AIError("the answer lacked required fields: " + ", ".join(missing[:6]))
+                return ans
+            note = ("\n\nYour previous answer was missing these fields: " + ", ".join(missing[:10]) +
+                    ". Reply with the data as one JSON object with every field, not the schema.")
+        raise AIError("no usable answer")
+
+    def _json_once(self, system: str, content: list[dict], schema: dict, name: str, *, max_tokens: int | None,
+                   reasoning_effort: str | None) -> Answer:
         effort = self.cfg.reasoning_effort if reasoning_effort == "default" else reasoning_effort
         base = {
             "model": self.cfg.model,
@@ -113,7 +156,8 @@ class Client:
         data = self._post(strict)
         mode = "strict"
         if data.get("error") or data["_status"] >= 400:
-            loose_system = system + "\n\nReply with JSON only, matching this JSON schema:\n" + json.dumps(schema)
+            loose_system = (system + "\n\nReply with ONE JSON object holding the data (not the schema itself), "
+                            "with exactly the fields described by this JSON schema:\n" + json.dumps(schema))
             loose = {**base, "messages": [{"role": "system", "content": loose_system}, {"role": "user", "content": content}],
                      "response_format": {"type": "json_object"}}
             data = self._post(loose)
