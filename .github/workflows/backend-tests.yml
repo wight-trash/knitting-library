@@ -1,0 +1,38 @@
+# Runs the library's backend tests (upstream's and the fork's) on every push and pull request.
+# Fork-only file (FORK.md). Upstream does not run its backend tests in CI.
+name: Backend tests
+
+on:
+  push:
+    branches: [jeff, dev]
+    paths:
+      - "app/backend/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    branches: [jeff, dev]
+    paths:
+      - "app/backend/**"
+      - ".github/workflows/backend-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: pip install -r requirements.txt pytest jsonschema
+      - name: Run tests
+        run: |
+          T=$(mktemp -d)
+          mkdir -p "$T/static" && echo '<div id="root"></div>' > "$T/static/index.html"
+          KNITTING_DATA_DIR="$T/data" KNITTING_LOG_DIR="$T/logs" KNITTING_STATIC_DIR="$T/static" python -m pytest -q tests
