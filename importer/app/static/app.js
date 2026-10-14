@@ -321,11 +321,14 @@
     const reason = MANUAL_WHY[m.code];
     const intro = m.code === "chosen"
       ? h("p", { class: "lede" }, "Save two files from the DROPS website, drop them below, and the importer checks each one for you.")
-      : h("p", { class: "lede" }, "Nothing is wrong with your link. This way takes two minutes and works every time.");
+      : m.code === "shared"
+        ? h("p", { class: "lede" }, "The page arrived from your phone. Add the PDF of the pattern to carry on.")
+        : h("p", { class: "lede" }, "Nothing is wrong with your link. This way takes two minutes and works every time.");
+    const title = { chosen: "Add your own files", shared: "Almost there" }[m.code] || "Let's get it the other way";
 
     return h("div", { class: "stack" },
       h("div", { class: "stage-head" },
-        h("h1", { tabindex: "-1" }, m.code === "chosen" ? "Add your own files" : "Let's get it the other way"),
+        h("h1", { tabindex: "-1" }, title),
         intro),
       reason ? note("warn", reason, null, technical(m.technical)) : (m.message ? note("warn", m.message, null, technical(m.technical)) : null),
       h("div", { class: "tasks" }, pdfTask, pageTask),
@@ -333,7 +336,7 @@
       h("div", { class: "footer-actions" },
         h("div", { class: "actions" },
           h("button", { class: "btn quiet", type: "button", onclick: startAgain }, "Start again"),
-          d.url ? h("button", { class: "btn ghost", type: "button", onclick: retryLink }, "Try the link again") : null),
+          d.url && m.code !== "shared" ? h("button", { class: "btn ghost", type: "button", onclick: retryLink }, "Try the link again") : null),
         h("div", { class: "actions" },
           canContinue && !pageV ? h("span", { class: "lede" }, "Without the page, tags and videos are left out.") : null,
           !canContinue ? h("span", { class: "lede waiting", role: "status" }, "Continue unlocks when the PDF (step A) is added.") : null,
@@ -637,6 +640,10 @@
     try { S.status = await api("GET", "api/status"); } catch { S.status = null; }
     renderStatus();
     api("GET", "api/suggestions").then((s) => { S.suggestions = s; }).catch(() => {});
+    // A page shared from Safari arrives as ?draft=<id>. Remember it, then tidy the address bar.
+    const shared = new URLSearchParams(location.search).get("draft");
+    if (shared && /^[0-9a-f]{16}$/.test(shared)) store.set(shared);
+    if (shared !== null) history.replaceState(null, "", location.pathname);
     const id = store.get();
     if (id) {
       try {
