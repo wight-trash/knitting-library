@@ -184,6 +184,9 @@ class FakeClient:
             data = SECTIONS[section]
         return ai.Answer(json.loads(json.dumps(data)), "strict", {"prompt_tokens": 10, "completion_tokens": 5, "cost": 0.0001})
 
+    def close(self):
+        pass
+
     def text(self, system, content, **kw):
         self.calls.append("picture")
         return ai.Answer({"text": "(no pattern content)"}, "text", {})
@@ -240,6 +243,16 @@ class EndToEndTests(unittest.TestCase):
         self.assertTrue(beats, "no heartbeat events while the model was answering")
         self.assertTrue(all("elapsed" in e.detail for e in beats))
         self.assertEqual(events[-1].stage, "done")
+
+    def test_cancel_stops_the_build(self):
+        from app.guide_builder.pipeline import BuildCancelled
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = Path(tmp) / "hat.pdf"
+            pdf.write_bytes(tiny_pdf(LINES))
+            client = FakeClient()
+            with self.assertRaises(BuildCancelled):
+                build_guide(str(pdf), client, cancel=lambda: "pattern_outline" in client.calls)
+        self.assertNotIn("pattern_section", client.calls)
 
     def test_quote_not_in_pattern_becomes_a_doubt(self):
         bad = json.loads(json.dumps(SECTIONS))

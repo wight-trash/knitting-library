@@ -20,7 +20,7 @@ import tempfile
 import threading
 import time
 import unicodedata
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -34,6 +34,10 @@ HEARTBEAT_SECONDS = 3.0   # while a model call is running, repeat the latest eve
 
 
 # ---------------------------------------------------------------- result
+class BuildCancelled(Exception):
+    """The knitter (or the app) asked for the build to stop."""
+
+
 @dataclass
 class BuildResult:
     guide: dict
@@ -161,8 +165,9 @@ def _not_given(text: str = "") -> dict:
 
 # ---------------------------------------------------------------- builder
 class Builder:
-    def __init__(self, pdf: str, client: ai.Client, report: Reporter = silent, workers: int = 6):
+    def __init__(self, pdf: str, client: ai.Client, report: Reporter = silent, workers: int = 6, cancel=None):
         self.pdf = str(pdf)
+        self.cancel = cancel or (lambda: False)
         self.client = client
         self.report = report
         self.workers = workers
@@ -174,7 +179,12 @@ class Builder:
         self._lock = threading.Lock()
         self._started = time.time()
 
+    def _check(self) -> None:
+        if self.cancel():
+            raise BuildCancelled()
+
     def _emit(self, stage, message, done=0, total=0, **detail):
+        self._check()
         event = Event(stage, message, done, total, detail)
         with self._lock:
             self._last = event
@@ -264,13 +274,16 @@ class Builder:
         self._emit("pictures", f"Reading pages that are pictures (0 of {total})", 0, total)
 
         def one(n):
+            self._check()
             ans = self.client.text(prompts.PICTURE, [ai.text_part(f"Page {n} of the pattern."), ai.image_part(self.images[n])])
             return n, ans
 
         with ThreadPoolExecutor(self.workers) as pool:
-            for fut in [pool.submit(one, n) for n in numbers]:
+            for fut in as_completed([pool.submit(one, n) for n in numbers]):
                 try:
                     n, ans = fut.result()
+                except BuildCancelled:
+                    raise
                 except ai.AIError as exc:
                     self.errors.append(f"picture page: {exc}")
                     continue
@@ -355,6 +368,7 @@ class Builder:
         self._emit("sections", f"Writing the steps (0 of {total} sections)", 0, total)
 
         def one(i):
+            self._check()
             sec = sections[i]
             ans = self.client.json(prompts.SECTION, self._section_content(sec, (feedback or {}).get(i, "")),
                                    schemas.AI_SECTION, "pattern_section")
@@ -362,17 +376,20 @@ class Builder:
 
         indexes = list(feedback) if feedback else list(range(total))
         with ThreadPoolExecutor(self.workers) as pool:
-            futures = [pool.submit(one, i) for i in indexes]
-            for fut in futures:
+            futures = {pool.submit(one, i): i for i in indexes}
+            for fut in as_completed(futures):
+                i = futures[fut]
                 try:
-                    i, ans = fut.result()
+                    _, ans = fut.result()
                     self.usage.add(ans)
                     results[i] = ans.data
+                except BuildCancelled:
+                    raise
                 except ai.AIError as exc:
                     self.errors.append(f"section: {exc}")
                 done += 1
-                name = sections[indexes[done - 1]]["outline"]["name"]
-                self._emit("sections", f"Writing the steps: {name} ({done} of {len(indexes)})", done, len(indexes),
+                name = sections[i]["outline"]["name"]
+                self._emit("sections", f"Writing the steps: {name} done ({done} of {len(indexes)})", done, len(indexes),
                            section=name)
         return results
 
@@ -719,7 +736,8 @@ class Builder:
             self.code_doubts.append(d)
 
 
-def build_guide(pdf: str, client: ai.Client, *, report: Reporter = silent, workers: int = 6) -> BuildResult:
+def build_guide(pdf: str, client: ai.Client, *, report: Reporter = silent, workers: int = 6, cancel=None) -> BuildResult:
     """Build a format 0.2 guide from a pattern PDF. Never raises for a bad answer from the model: problems become
-    doubts and entries in the report. Raises ai.AIError only when the outline itself cannot be obtained."""
-    return Builder(pdf, client, report, workers).run()
+    doubts and entries in the report. Raises ai.AIError only when the outline itself cannot be obtained, and
+    BuildCancelled when `cancel()` returns True (checked between stages and before each model call)."""
+    return Builder(pdf, client, report, workers, cancel).run()

@@ -11,3 +11,4 @@ qrcode==8.0
 bcrypt==4.2.1
 PyJWT[crypto]==2.15.1
 cryptography==50.0.2
+pypdf==6.20.1
