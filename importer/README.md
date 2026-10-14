@@ -73,17 +73,20 @@ Environment variables.
 
 ## Running it
 
-```
-docker compose -f docker-compose.example.yml up -d --build
-```
+Use `deploy/docker-compose.yml` at the top of the repository (both apps, live) or `deploy/docker-compose.dev.yml`
+(the test copy). Both pull the images built by GitHub Actions.
 
-Or for development, with a pretend DROPS and a pretend Knitting Library, to look at the screens:
+Or for development (Python 3.14), with a pretend DROPS and a pretend Knitting Library, to look at the screens:
 
 ```
 pip install -r requirements-dev.txt
 python dev/devserver.py          # http://127.0.0.1:8099
-pytest
+CHROMIUM_PATH=/path/to/chromium pytest
 ```
+
+Without `CHROMIUM_PATH` pointing at a Chromium, the tests that print PDFs skip. Set `SHARE_TOKEN` for the dev server to try `POST /api/share`.
+
+Inside the image, `python -m app.selfcheck` checks that Chromium can print a PDF and poppler can read it. CI runs it on every image before publishing.
 
 `dev/e2e_real_kl.py` runs the whole flow against a real Knitting Library on 127.0.0.1:8089.
 
@@ -91,6 +94,7 @@ pytest
 
 ```
 app/main.py            web API and page
+app/selfcheck.py       PDF tools check, for CI and for troubleshooting
 app/pipeline.py        the three stages
 app/drops/             link checks, polite fetcher, page readers, PDF maker, upload checks
 app/kl/                Knitting Library client, text version builder
@@ -101,7 +105,7 @@ tests/                 fixtures are one saved DROPS pattern, for private testing
 ## Known limits
 
 * The DROPS site structure was learned from one saved pattern (Sage Leaf Sweater). Other pattern types (crochet, accessories, charts only) are untested. Each pattern gets checks, so odd ones should show warnings, not wrong data.
-* Live fetching from garnstudio.com has not been tested from the NAS. The test server stands in for it.
-* The Docker image has not been built yet.
+* Live fetching from garnstudio.com is challenged by DROPS's Cloudflare when tried from the NAS. The importer then switches to the manual route, as designed.
+* "Share from Safari" (`SHARE-FROM-IPHONE.md`) is built but parked, and off unless `SHARE_TOKEN` is set. It has not been tried on a phone.
 * Yarn matching adds the yarns and colours to the yarn list. Matching against stock is not built, because Knitting Library counts skeins and DROPS patterns give grams.
 * Ravelry is not included.
