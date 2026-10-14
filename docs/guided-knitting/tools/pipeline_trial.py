@@ -70,11 +70,13 @@ def score(label: str, baseline: str | None) -> None:
         src = "\n".join(mt.page_texts(PRIVATE / "patterns" / f"{pid}.pdf"))
         rec, prec = mt.overlap(mt.values_by_size(ref), mt.values_by_size(guide))
         cp_rec, _ = mt.overlap(mt.checkpoints(ref), mt.checkpoints(guide))
+        ps_rec, ps_prec = mt.overlap(mt.per_size_values(ref), mt.per_size_values(guide))
         ev = [json.loads(l) for l in (out / f"{pid}.progress.jsonl").read_text().splitlines() if l.strip()]
         gaps = [round(b["at"] - a["at"], 1) for a, b in zip(ev, ev[1:])]
         rows.append({
             "pattern": pid, "valid": not problems, "problems": len(problems),
             "sizes_ok": [s["label"] for s in guide["options"]["sizes"]] == [s["label"] for s in ref["options"]["sizes"]],
+            "per_size_recall": round(ps_rec, 3), "per_size_precision": round(ps_prec, 3),
             "value_recall": round(rec, 3), "value_precision": round(prec, 3), "checkpoint_recall": round(cp_rec, 3),
             "invented": mt.invented(guide, src) if len(src.strip()) > 500 else None,
             "steps": sum(len(s["steps"]) for s in guide["sections"]), "ref_steps": sum(len(s["steps"]) for s in ref["sections"]),

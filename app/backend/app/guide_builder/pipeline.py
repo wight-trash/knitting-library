@@ -17,6 +17,7 @@ import io
 import re
 import subprocess
 import tempfile
+import threading
 import time
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
@@ -29,6 +30,7 @@ from .progress import Event, Reporter, silent
 PIPELINE = "guide_builder 0.1"
 IMAGE_DPI = 90
 MAX_SECTION_IMAGES = 4
+HEARTBEAT_SECONDS = 3.0   # while a model call is running, repeat the latest event this often, with the elapsed time
 
 
 # ---------------------------------------------------------------- result
@@ -168,15 +170,44 @@ class Builder:
         self.timings: dict[str, float] = {}
         self.errors: list[str] = []
         self.code_doubts: list[dict] = []
+        self._last: Event | None = None
+        self._lock = threading.Lock()
+        self._started = time.time()
 
     def _emit(self, stage, message, done=0, total=0, **detail):
+        event = Event(stage, message, done, total, detail)
+        with self._lock:
+            self._last = event
+        self._send(event)
+
+    def _send(self, event: Event) -> None:
         try:
-            self.report(Event(stage, message, done, total, detail))
+            self.report(event)
         except Exception:  # a broken progress listener must never stop the build
             pass
 
+    def _heartbeat(self, stop: threading.Event) -> None:
+        """Re-send the latest event with the elapsed seconds, so a page that comes back from sleep sees it move."""
+        while not stop.wait(HEARTBEAT_SECONDS):
+            with self._lock:
+                last = self._last
+            if last is None or last.stage == "done":
+                continue
+            self._send(Event(last.stage, last.message, last.done, last.total,
+                             {**last.detail, "heartbeat": True, "elapsed": round(time.time() - self._started)}))
+
     # ------------------------------------------------ stages
     def run(self) -> BuildResult:
+        stop = threading.Event()
+        beat = threading.Thread(target=self._heartbeat, args=(stop,), daemon=True)
+        beat.start()
+        try:
+            return self._run()
+        finally:
+            stop.set()
+            beat.join(timeout=HEARTBEAT_SECONDS + 1)
+
+    def _run(self) -> BuildResult:
         t0 = time.time()
         self._emit("read", "Reading the pattern")
         doc = reader.read(self.pdf)
