@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from app.drops.fetcher import DropsFetcher
 from app.kl.client import KnittingLibrary
 from app.main import create_app
-from tests.conftest import needs_fixtures, drops_handler
+from tests.conftest import drops_handler, needs_chromium, needs_fixtures
 from tests.fakekl import FakeKL
 
 pytestmark = needs_fixtures
@@ -52,6 +52,7 @@ def test_bad_links_get_friendly_messages(settings):
         assert r.status_code == 422
 
 
+@needs_chromium
 def test_link_route_then_publish(settings):
     client, kl = make_client(settings)
     with client:
@@ -89,6 +90,7 @@ def test_link_route_then_publish(settings):
         assert kl.logins == 1
 
 
+@needs_chromium
 def test_duplicate_then_add_anyway(settings):
     client, kl = make_client(settings, kl=FakeKL(duplicate=True))
     with client:
@@ -105,6 +107,7 @@ def test_duplicate_then_add_anyway(settings):
         assert len(kl.recipes) == 1
 
 
+@needs_chromium
 def test_publish_failure_can_be_resumed(settings):
     kl = FakeKL(fail_text=True)
     client, _ = make_client(settings, kl=kl)
