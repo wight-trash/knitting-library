@@ -6,12 +6,18 @@ something else (for example reader comments or adverts).
 Never retype or calculate numbers. Quote the pattern exactly, character for character, and the app's code reads the
 numbers from your quotes. Never convert units. Never fill in a value the pattern does not give.
 Ignore browser headers and footers, page numbers, shop stamps, adverts, marketing pages and photo captions.
-Write any message for the knitter in plain British English."""
+Write any message for the knitter in plain British English.
+Text between "[Read from the picture]" and "[End of picture]" was read from an image of the page; everything else is
+the pattern's own text. Page images are there to help with layout: do not say a section was read from a picture
+unless its text is inside those markers."""
 
 DOUBTS = """Doubts: raise one only when the knitter genuinely needs to check something: a value is missing, two parts of
 the pattern disagree, the wording is truly ambiguous, a step depends on something outside the pattern, or a value had
 to be read from a picture. Do not explain ordinary knitting conventions an experienced knitter knows. Never claim that
-arithmetic or stitch counts are wrong: the app checks the arithmetic itself."""
+arithmetic or stitch counts are wrong: the app checks the arithmetic itself. Never write a doubt about how you split
+the pattern into sections or steps, about a section continuing elsewhere, or that only repeats what the pattern says
+(for example "the second sleeve is worked the same way"). If in doubt, leave it out: every doubt costs the knitter
+time to check."""
 
 PICTURE = f"""You transcribe one page of a knitting pattern from its image, because the page has no usable text layer.
 {COMMON}
