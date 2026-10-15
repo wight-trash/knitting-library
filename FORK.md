@@ -72,12 +72,16 @@ default (Settings, Guided versions), so the live library looks the same until it
 | --- | --- |
 | `app/backend/app/guide_builder/` | Builds a guide from a pattern PDF: reading, AI outline and sections, numbers copied from the pattern, checks, progress events. No app dependencies. |
 | `app/backend/app/guided/` | The app side: settings (`fork_*` rows in `app_settings`), background builds that survive restarts, `/api/guided/...` |
-| `app/backend/app/fork_migrations.py` | The fork's own tables (`guide_jobs`, `guides`) and schema version; upstream's schema code is not edited |
+| `app/backend/app/fork_migrations.py` | The fork's own tables (`guide_jobs`, `guides`; version 2: `yarn_specs`, `stash_ledger`) and schema version; upstream's schema code is not edited |
+| `app/backend/app/stash/` | The stash in grams ([design](docs/guided-knitting/PHASE2-STASH.md)): ball details, gram history, ball-band reader, server-side picture fetch, `/api/stash/...` and `/api/fork/settings` |
+| `app/backend/app/fork_hooks.py` | `after_quantity_change`: upstream's ball count changes feed the gram history (inside the caller's transaction; never raises) |
 | `app/frontend/src/fork/` | The fork's own API calls, strings and screens (the Guided tab, the settings card) |
 | `.github/workflows/backend-tests.yml` | Runs all backend tests on every push and pull request |
 
 Edits to upstream files, all marked `fork`:
-* `app/backend/app/main.py`: 3 lines (router, start-up);
+* `app/backend/app/main.py`: 5 lines (guided and stash routers, start-up);
+* `app/backend/app/inventory/service.py`: 3 lines, the stash hook in create, update and adjust;
+* `app/backend/app/recipes/repository.py`: 1 line, the stash hook after `start_project` deducts balls;
 * `app/backend/requirements.txt`: `pypdf`;
 * `app/frontend/src/pages/RecipeViewer.jsx`: imports, the Guided tab and one branch;
 * `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line.

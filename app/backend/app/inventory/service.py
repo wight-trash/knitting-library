@@ -72,6 +72,7 @@ def create_inventory_item(body: dict = Body(...), current_user: dict = Depends(g
             "INSERT INTO inventory_log (id,item_id,change,reason,note,created_at) VALUES (?,?,?,?,?,?)",
             (str(uuid.uuid4()), item_id, qty, "added", "Initial stock", now)
         )
+    from app import fork_hooks; fork_hooks.after_quantity_change(conn, item_id, 0, qty, "create", current_user.get("username", ""))  # fork: stash (FORK.md)
     conn.commit()
     result = _inventory_to_dict(conn.execute("SELECT * FROM inventory_items WHERE id=?", (item_id,)).fetchone(), conn)
     conn.close()
@@ -96,6 +97,7 @@ def update_inventory_item(item_id: str, body: dict = Body(...), current_user: di
          body.get("yarn_colour_id") or row["yarn_colour_id"],
          item_id)
     )
+    from app import fork_hooks; fork_hooks.after_quantity_change(conn, item_id, row["quantity"], None, "edit", current_user.get("username", ""))  # fork: stash (FORK.md)
     conn.commit()
     result = _inventory_to_dict(conn.execute("SELECT * FROM inventory_items WHERE id=?", (item_id,)).fetchone(), conn)
     conn.close()
@@ -119,6 +121,7 @@ def adjust_inventory(item_id: str, body: dict = Body(...), current_user: dict = 
         (str(uuid.uuid4()), item_id, change, body.get("reason","manual"),
          body.get("recipe_id") or None, body.get("session_id") or None, body.get("note",""), now)
     )
+    from app import fork_hooks; fork_hooks.after_quantity_change(conn, item_id, row["quantity"], max(0, row["quantity"] + change), "adjust", current_user.get("username", ""))  # fork: stash (FORK.md)
     conn.commit()
     result = _inventory_to_dict(conn.execute("SELECT * FROM inventory_items WHERE id=?", (item_id,)).fetchone(), conn)
     conn.close()
