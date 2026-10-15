@@ -3,6 +3,7 @@ import { ExternalLink, Github } from 'lucide-react';
 import { useApp } from '../utils/AppContext';
 import { getLanguageLocale } from '../utils/translations';
 import './AnnouncementModal.css';
+import { releaseText } from '../fork/releases/releaseText'; // fork: no raw HTML in release notes
 
 /**
  * Shows one or more unread GitHub releases to the user.
@@ -40,9 +41,9 @@ export default function AnnouncementModal({ announcements, onDismiss }) {
           </div>
         </div>
 
-        {latest.body && (
+        {releaseText(latest.body) && ( // fork
           <div className="ann-body">
-            <pre className="ann-body-text">{latest.body}</pre>
+            <pre className="ann-body-text">{releaseText(latest.body)}</pre>{/* fork */}
           </div>
         )}
 

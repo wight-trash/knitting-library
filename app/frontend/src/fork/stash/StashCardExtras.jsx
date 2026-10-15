@@ -1,5 +1,6 @@
 // The stash in grams on a yarn card of the Inventory page: "4.3 balls · 215 g", Bought more, Correct and the
 // history. Shows nothing while the switch is off. Fork-only (FORK.md).
+// In grams mode these replace upstream's skein +/- and History on the card (hidden in Stash.css, no upstream edit).
 // onCountChanged(itemId, quantity) tells the page the whole-ball count the server now has.
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Scale, Clock } from 'lucide-react';
@@ -47,7 +48,7 @@ function Extras({ item, onCountChanged }) {
   const close = () => setDialog(null);
 
   return (
-    <div className="st-card-extras">
+    <div className={`st-card-extras ${grams ? 'st-card-extras--grams' : ''}`}>
       <p className="st-card-amount">{grams ? amountText(stash.balls, stash.grams) : amountText(stash.quantity, null)}</p>
       {!grams && stash.yarn_id && (
         <button type="button" className="st-link" onClick={() => setDialog('details')}>{ft('addBallWeight')}</button>
