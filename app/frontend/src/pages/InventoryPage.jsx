@@ -18,6 +18,7 @@ import YarnUploadModal from '../components/YarnUploadModal';
 import CurrencyInput from '../components/CurrencyInput';
 import CollectionToolbar from '../components/CollectionToolbar';
 import './InventoryPage.css';
+import StashCardExtras from '../fork/stash/StashCardExtras'; // fork: stash
 
 const TOOL_CATEGORIES = ['needle', 'tool', 'notion', 'other'];
 
@@ -37,7 +38,7 @@ function logReasonLabel(reason, t) {
 }
 
 // ── Inventory item card ───────────────────────────────────────────────────────
-function InventoryCard({ item, onAdjust, onEdit, onDelete, t, language, currencySymbol }) {
+function InventoryCard({ item, onAdjust, onEdit, onDelete, t, language, currencySymbol, onStashCount /* fork: stash */ }) {
   const [showLog, setShowLog]   = useState(false);
   const [log, setLog]           = useState([]);
   const [logLoading, setLogLoading] = useState(false);
@@ -103,6 +104,7 @@ function InventoryCard({ item, onAdjust, onEdit, onDelete, t, language, currency
           </button>
         </div>
 
+        {isYarn && <StashCardExtras item={item} onCountChanged={onStashCount} />} {/* fork: stash */}
         {/* Purchase info */}
         {(item.purchase_price || item.purchase_date) && (
           <div className="inv-purchase-row">
@@ -538,6 +540,7 @@ export default function InventoryPage({ onRequestAddYarn, addRequest, refreshKey
     } catch (e) { alert(e.message); }
   };
 
+  const handleStashCount = useCallback((id, quantity) => setItems(prev => prev.map(i => i.id === id ? { ...i, quantity } : i)), []); // fork: stash
   const handleSaved = (item) => {
     setModalOpen(false);
     setEditItem(null);
@@ -603,6 +606,7 @@ export default function InventoryPage({ onRequestAddYarn, addRequest, refreshKey
                 {yarnItems.map(item => (
                   <InventoryCard
                     key={item.id} item={item} t={t} language={language} currencySymbol={currencySymbol}
+                    onStashCount={handleStashCount} /* fork: stash */
                     onAdjust={handleAdjust}
                     onEdit={item => { setEditItem(item); setModalInitialType(item.type); setModalOpen(true); }}
                     onDelete={id => setConfirmDelete(id)}

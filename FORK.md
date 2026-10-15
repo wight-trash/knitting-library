@@ -66,7 +66,7 @@ If a rebase stops on a conflict, git names the file. Keep upstream's new code, p
 ## Guided knitting (in progress)
 
 Plan: [`docs/guided-knitting/PLAN.md`](docs/guided-knitting/PLAN.md). Everything is behind a switch that is off by
-default (Settings, Guided versions), so the live library looks the same until it is turned on.
+default (Settings, Knitting upgrades), so the live library looks the same until it is turned on.
 
 | Where | What |
 | --- | --- |
@@ -75,7 +75,7 @@ default (Settings, Guided versions), so the live library looks the same until it
 | `app/backend/app/fork_migrations.py` | The fork's own tables (`guide_jobs`, `guides`; version 2: `yarn_specs`, `stash_ledger`) and schema version; upstream's schema code is not edited |
 | `app/backend/app/stash/` | The stash in grams ([design](docs/guided-knitting/PHASE2-STASH.md)): ball details, gram history, ball-band reader, server-side picture fetch, `/api/stash/...` and `/api/fork/settings` |
 | `app/backend/app/fork_hooks.py` | `after_quantity_change`: upstream's ball count changes feed the gram history (inside the caller's transaction; never raises) |
-| `app/frontend/src/fork/` | The fork's own API calls, strings and screens (the Guided tab, the settings card) |
+| `app/frontend/src/fork/` | The fork's own API calls, strings and screens (the Guided tab, the Knitting upgrades settings card; `stash/`: ball details, ball band photo, grams on the inventory cards, Bought more, Correct, history) |
 | `.github/workflows/backend-tests.yml` | Runs all backend tests on every push and pull request |
 
 Edits to upstream files, all marked `fork`:
@@ -84,10 +84,20 @@ Edits to upstream files, all marked `fork`:
 * `app/backend/app/recipes/repository.py`: 1 line, the stash hook after `start_project` deducts balls;
 * `app/backend/requirements.txt`: `pypdf`;
 * `app/frontend/src/pages/RecipeViewer.jsx`: imports, the Guided tab and one branch;
-* `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line.
+* `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line;
+* `app/frontend/src/components/YarnUploadModal.jsx`: imports, the stash hook, two calls in Save, the shop picture
+  fetched through `/api/stash/image`, the ball band and Ball details blocks, and "Please check" on five boxes;
+* `app/frontend/src/pages/InventoryPage.jsx`: import, one prop, one callback, the stash line on each yarn card;
+* `app/frontend/src/pages/YarnViewer.jsx`: import and the Ball details section.
 
-Guides are built with the AI address and key from the app's own Settings, AI page, and the model chosen under
-Settings, Guided versions (default Claude Haiku 5.5 through OpenRouter).
+Guides are built, and ball bands read, with the AI address and key from the app's own Settings, AI page, and the
+model chosen under Settings, Knitting upgrades (default Claude Haiku 5.5 through OpenRouter).
+
+### Upstream bug fixed in the fork
+
+`utils/api.js` `addYarnColour` sent a form to an endpoint that only takes JSON, so "Add colour" on a yarn's page
+failed with 422 (live included). It now sends the name and price as JSON and uploads the picture to the colour's own
+picture endpoint. Marked `fork`. Worth reporting upstream with the other fixes.
 
 ## Package updates
 

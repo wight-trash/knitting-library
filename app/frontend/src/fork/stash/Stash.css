@@ -1,0 +1,423 @@
+/* The stash in grams (fork-only, see FORK.md). Colours come from the app's theme variables, so every colour theme
+   and dark mode work. Touch targets are at least 44 px; text in dialogs is at least 16 px. Layout follows the width
+   (container queries where a block sits inside something narrower than the screen). */
+
+/* ---------------------------------------------------------------- shared */
+.st-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; }
+
+.st-text { margin: 0; font-size: 17px; line-height: 1.5; color: var(--text-primary); }
+.st-hint { margin: 0; font-size: 16px; line-height: 1.45; color: var(--text-secondary); }
+.st-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(224, 85, 85, 0.12);
+  border: 1px solid rgba(224, 85, 85, 0.35);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.st-h3 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.st-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+.st-btn--small { min-height: 44px; padding: 8px 14px; font-size: 16px; }
+.st-btn--primary { background: var(--accent); color: #fff; border: 1.5px solid var(--accent); }
+.st-btn--secondary { background: var(--card-bg); color: var(--text-primary); border: 1.5px solid var(--border); }
+.st-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) {
+  .st-btn--primary:hover:not(:disabled) { background: var(--accent-light); border-color: var(--accent-light); }
+  .st-btn--secondary:hover:not(:disabled) { border-color: var(--text-secondary); }
+}
+
+.st-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.st-link--quiet { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+
+.st-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .st-icon-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+}
+
+.st-check-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(214, 158, 46, 0.2);
+  border: 1px solid rgba(214, 158, 46, 0.75);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.st-spin { animation: spin 0.9s linear infinite; }
+
+/* ---------------------------------------------------------------- form boxes */
+.st-form { display: flex; flex-direction: column; gap: 16px; }
+.st-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.st-label {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.st-label--big { font-size: 18px; }
+.st-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--card-bg));
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+}
+.st-input::placeholder { color: var(--text-light); }
+.st-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+.st-input--check { border-color: rgba(214, 158, 46, 0.9); background: rgba(214, 158, 46, 0.08); }
+.st-textarea { min-height: 76px; resize: vertical; line-height: 1.45; }
+.st-band-text { margin: 0; font-size: 15px; color: var(--text-secondary); }
+
+.st-fieldset { border: none; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.st-fieldset > legend { padding: 0; margin-bottom: 8px; }
+.st-fieldset .st-label { font-weight: 500; font-size: 16px; color: var(--text-secondary); }
+.st-fieldset > legend.st-label { font-weight: 600; color: var(--text-primary); }
+.st-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ---------------------------------------------------------------- the Ball details block */
+.st-ball-fields {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card-bg) 85%, var(--bg-secondary));
+}
+.st-form .st-ball-fields { padding: 0; border: none; background: none; }
+.st-ball-head { display: flex; flex-direction: column; gap: 4px; }
+.st-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@container (min-width: 420px) {
+  .st-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------------------------------------------------------------- the ball band photo */
+.st-band { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.st-band-off { padding: 2px 0; }
+.st-band-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.st-band-btn svg { flex-shrink: 0; }
+.st-band-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.st-band-btn-title { font-size: 19px; font-weight: 700; line-height: 1.25; }
+.st-band-btn-sub { font-size: 16px; line-height: 1.35; opacity: 0.95; }
+@media (hover: hover) and (pointer: fine) {
+  .st-band-btn:hover { background: var(--accent-light); }
+}
+
+.st-band--photo {
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+.st-band-photo-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--card-bg);
+  display: flex;
+  justify-content: center;
+}
+.st-band-photo { width: 100%; max-height: 240px; object-fit: contain; display: block; }
+.st-band-reading {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 600;
+}
+.st-band-info { display: flex; flex-direction: column; gap: 10px; }
+.st-band-ok { font-weight: 500; }
+.st-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.st-check-row input { width: 24px; height: 24px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.st-band-again { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+
+/* The upstream yarn form with a ball band photo: on a tablet or computer the photo stays beside the form. */
+@media (min-width: 760px) {
+  .yum-modal:has(.st-band--photo) { width: min(1040px, 96vw); }
+  .yum-body:has(> .st-band--photo) {
+    display: grid;
+    grid-template-columns: minmax(260px, 36%) minmax(0, 1fr);
+    column-gap: 22px;
+    row-gap: 0;
+    align-items: start;
+  }
+  .yum-body:has(> .st-band--photo) > * { grid-column: 2; margin-bottom: 18px; }
+  .yum-body:has(> .st-band--photo) > .st-band--photo {
+    grid-column: 1;
+    grid-row: 1 / span 12;
+    position: sticky;
+    top: 0;
+    margin-bottom: 0;
+  }
+  .yum-body:has(> .st-band--photo) .st-band-photo { max-height: 420px; }
+}
+/* Phones: keep the photo small so the boxes stay in view. */
+@media (max-width: 640px) {
+  .st-band-photo { max-height: 180px; }
+}
+
+/* ---------------------------------------------------------------- dialogs */
+.st-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: 'DM Sans', sans-serif;
+}
+.st-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100% - 12px);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+@media (min-width: 641px) {
+  .st-overlay { align-items: center; padding: 16px; }
+  .st-dialog { width: min(500px, 100%); max-height: 100%; border-radius: 16px; }
+  .st-dialog--wide { width: min(680px, 100%); }
+}
+.st-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 12px 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.st-dialog-titles { min-width: 0; padding-top: 6px; }
+.st-dialog-title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+.st-dialog-sub { margin: 2px 0 0; font-size: 16px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.st-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 18px 20px;
+  font-size: 17px;
+}
+.st-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--card-bg);
+}
+@media (max-width: 640px) {
+  .st-dialog-foot > .st-btn { flex: 1 1 0; }
+}
+
+.st-segment {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.st-segment-btn {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.st-segment-btn.active { background: var(--accent); color: #fff; }
+
+.st-amount-row { display: flex; align-items: center; gap: 10px; }
+.st-input--amount { max-width: 180px; font-size: 22px; font-weight: 700; }
+.st-amount-unit { font-size: 18px; color: var(--text-secondary); }
+.st-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.st-chip {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.st-after { font-weight: 600; }
+
+/* ---------------------------------------------------------------- history */
+.st-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.st-history-row {
+  display: grid;
+  grid-template-columns: minmax(84px, auto) 1fr;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.st-history-row:last-child { border-bottom: none; }
+.st-history-change { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.st-history-g { font-size: 18px; font-weight: 700; white-space: nowrap; }
+.st-history-row.up .st-history-g { color: #3a8e5e; }
+.st-history-row.down .st-history-g { color: #c4523f; }
+[data-theme="dark"] .st-history-row.up .st-history-g { color: #6cc794; }
+[data-theme="dark"] .st-history-row.down .st-history-g { color: #f08a78; }
+.st-history-balls { font-size: 15px; color: var(--text-secondary); white-space: nowrap; }
+.st-history-detail { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-history-reason { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.st-history-note { font-size: 16px; color: var(--text-primary); overflow-wrap: anywhere; }
+.st-history-meta { font-size: 15px; color: var(--text-secondary); }
+
+/* ---------------------------------------------------------------- inventory cards */
+.st-card-extras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.st-card-amount { margin: 0; font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.st-card-extras .st-link { font-size: 15px; min-height: 44px; }
+.st-card-buttons { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.st-card-buttons .st-btn { flex: 1 1 auto; white-space: nowrap; padding-inline: 12px; }
+
+/* ---------------------------------------------------------------- yarn page */
+.st-yv-section { display: flex; flex-direction: column; gap: 10px; }
+.st-yv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* ---------------------------------------------------------------- Settings, Knitting upgrades */
+.ku-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ku-switch .theme-toggle { display: block; }
+.ku-switch:disabled { opacity: 0.6; cursor: wait; }

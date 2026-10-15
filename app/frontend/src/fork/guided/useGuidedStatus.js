@@ -15,6 +15,11 @@ function load() {
   return pending;
 }
 
+/** Called after the switch changes in Settings, so the next screen asks again. */
+export function forgetGuidedStatus() {
+  cached = null;
+}
+
 export default function useGuidedStatus() {
   const [status, setStatus] = useState(cached);
   useEffect(() => {
