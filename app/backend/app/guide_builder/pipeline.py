@@ -30,6 +30,8 @@ from .progress import Event, Reporter, silent
 PIPELINE = "guide_builder 0.1"
 IMAGE_DPI = 90
 MAX_SECTION_IMAGES = 4
+PICTURE_OPEN = "[Read from the picture]"
+PICTURE_CLOSE = "[End of picture]"
 HEARTBEAT_SECONDS = 3.0   # while a model call is running, repeat the latest event this often, with the elapsed time
 
 
@@ -163,6 +165,33 @@ def _not_given(text: str = "") -> dict:
     return {"text": text, "unit": None, "all": None, "by_size": None, "by_choice": None, "from_picture": False, "alt": None}
 
 
+def _inside_picture(text: str, offset: int) -> bool:
+    """True when `offset` falls inside a block of text that was read from a picture."""
+    before = text[:offset]
+    return before.rfind(PICTURE_OPEN) > before.rfind(PICTURE_CLOSE)
+
+
+def _merge_headings(steps: list[dict]) -> list[dict]:
+    """A step that is only a heading for the next one ("First row (RS, set-up row):") joins the step after it."""
+    out: list[dict] = []
+    carry: dict | None = None
+    for st in steps:
+        if carry is not None:
+            st = dict(st)
+            st["text"] = carry["text"].rstrip() + " " + st["text"].lstrip()
+            st["source"] = {**st["source"], "quote": (carry["source"]["quote"].rstrip() + " " + st["source"]["quote"].lstrip())[:300]}
+            st["confidence"] = min(st["confidence"], carry["confidence"], key=["low", "medium", "high"].index)
+            carry = None
+        text = st["text"].strip()
+        is_heading = (not st["slots"] and len(text) <= 80 and text.endswith(":") and st["target"]["kind"] == "none"
+                      and not st["repeat"] and not st["checkpoint"] and not st["schedules"])
+        if is_heading and st is not steps[-1]:
+            carry = st
+            continue
+        out.append(st)
+    return out
+
+
 # ---------------------------------------------------------------- builder
 class Builder:
     def __init__(self, pdf: str, client: ai.Client, report: Reporter = silent, workers: int = 6, cancel=None):
@@ -223,7 +252,8 @@ class Builder:
         doc = reader.read(self.pdf)
         self.images = _page_images(self.pdf)
         self.pages = {p.number: p.text for p in doc.pages}
-        self.picture_pages: set[int] = set()
+        self.picture_pages: set[int] = set()   # pages with no usable text: everything on them came from the picture
+        self.no_text_pages = {p.number for p in doc.pages if p.status.startswith("no-text")}
         self.links = doc.links
         self.timings["read"] = round(time.time() - t0, 1)
 
@@ -293,9 +323,13 @@ class Builder:
                 self.usage.add(ans)
                 text = ans.data["text"].strip()
                 if text and text != "(no pattern content)":
+                    # Text read from the picture is marked in place, so a step is only flagged "from the picture" when
+                    # its quote really lies inside it. A page with real text and a big photo is not a picture page.
                     existing = self.pages.get(n, "").strip()
-                    self.pages[n] = (existing + "\n" if len(existing) > 40 else "") + text
-                    self.picture_pages.add(n)
+                    block = f"{PICTURE_OPEN}\n{text}\n{PICTURE_CLOSE}"
+                    self.pages[n] = (existing + "\n" if len(existing) > 40 and n not in self.no_text_pages else "") + block
+                    if n in self.no_text_pages:
+                        self.picture_pages.add(n)
         self.timings["pictures"] = round(time.time() - t, 1)
 
     def _outline(self) -> dict:
@@ -457,7 +491,8 @@ class Builder:
             loc = locate(row["quote"], self.full_text)
             src = self.full_text[loc[0]:loc[1]] if loc else row["quote"]
             runs = sizes.find_runs(src, n, notation=notation, size_labels=labels)
-            pic = bool(row.get("from_picture")) or (row.get("page") in self.picture_pages)
+            pic = (_inside_picture(self.full_text, loc[0]) if loc else bool(row.get("from_picture"))) or \
+                (row.get("page") in self.picture_pages)
             value = sizes.to_sized_value(runs[0] if runs else None, n, text=src, from_picture=pic) if runs else \
                 sizes.quantity(src, n, notation=notation, size_labels=labels, from_picture=pic) or _not_given(src)
             self._check_runs(runs, f"size guide: {row['name']}")
@@ -517,6 +552,7 @@ class Builder:
             for k, st in enumerate(data.get("steps", [])):
                 steps.append(self._step(sid, k, st, sec, n, labels, size_ids, notation, clabels, choice_ids,
                                         tech_by_name, chart_by_name))
+            steps = _merge_headings(steps)
             if sec["outline"].get("based_on_section") and steps:
                 base = name_to_sec.get(sec["outline"]["based_on_section"].strip().lower())
                 if base:
@@ -528,7 +564,7 @@ class Builder:
                 "steps": steps,
                 "source": _source(page_of(first_loc[0]) if first_loc else sec["outline"].get("first_page"),
                                   sec["outline"].get("start_quote") or sec["outline"]["name"],
-                                  bool(set(sec["pages"]) & self.picture_pages)),
+                                  bool(sec["pages"]) and set(sec["pages"]) <= self.picture_pages),
             })
             for r_k, r in enumerate(data.get("reminders", [])):
                 if not steps:
@@ -544,6 +580,8 @@ class Builder:
                     "source": _source(steps[0]["source"]["page"], r.get("quote") or r["text"], False),
                 })
             for d in data.get("doubts", []):
+                if d["kind"] == "from_picture" and PICTURE_OPEN not in sec["text"]:
+                    continue  # code knows which text came from a picture; this section has none
                 self._doubt(d["kind"], d["message"], origin="ai", source=None)
 
         links, seen = [], set()
@@ -557,8 +595,10 @@ class Builder:
 
         for d in o.get("doubts") or []:
             self._doubt(d["kind"], d["message"], origin="ai", source=_source(d.get("page"), "", False) if d.get("page") else None)
-        if self.picture_pages:
-            pages = ", ".join(str(p) for p in sorted(self.picture_pages))
+        used = {st["source"]["page"] for sec_ in out_sections for st in sec_["steps"]} | \
+            {row["source"]["page"] for row in size_guide_rows}
+        if self.picture_pages & used:
+            pages = ", ".join(str(p) for p in sorted(self.picture_pages & used))
             self._doubt("from_picture", f"Page(s) {pages} had no usable text and were read from the picture. "
                                         "Check the numbers from those pages against the pattern.", source=None)
 
@@ -583,7 +623,10 @@ class Builder:
     def _step(self, sid, k, st, sec, n, labels, size_ids, notation, clabels, choice_ids, tech_by_name, chart_by_name) -> dict:
         text_src = sec["text"]
         loc = locate(st.get("quote"), text_src)
-        picture = bool(st.get("from_picture")) or bool(set(sec["pages"]) & self.picture_pages)
+        if loc:
+            picture = _inside_picture(text_src, loc[0])
+        else:
+            picture = bool(st.get("from_picture")) or (st.get("page") in self.picture_pages)
         if loc:
             quote = text_src[loc[0]:loc[1]]
             pages = re.findall(r"=== Page (\d+) ===", text_src[: loc[0]])
@@ -595,6 +638,7 @@ class Builder:
             confidence = "low"
         runs = sizes.find_runs(quote, n, notation=notation, size_labels=labels, choice_labels=clabels) if n > 1 or clabels else []
         self._check_runs(runs, f"{sec['outline']['name']}, step {k + 1}", step_id=f"{sid}-{k + 1}")
+        runs = [r for r in runs if not (r.note and "size label" in r.note)]  # "sizes 5 (6) 7 (8)" stays as written
         text, slots = sizes.slot_text(quote, runs, n) if runs else (quote, [])
         for sl in slots:
             sl["value"]["from_picture"] = picture
@@ -724,6 +768,8 @@ class Builder:
 
     def _check_runs(self, runs, where: str, step_id: str | None = None) -> None:
         for r in runs:
+            if r.note and "size label" in r.note:
+                continue  # "sizes 5 (6) 7 (8)" names the sizes a step is for; it is not a short list
             if not r.length_ok:
                 self._doubt("list_length", f"{where}: {r.note or 'the number of values does not match the number of sizes'} "
                                            f"(\"{r.text[:60]}\"). Check this against the pattern.",

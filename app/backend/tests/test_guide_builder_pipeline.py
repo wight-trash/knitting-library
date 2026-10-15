@@ -61,6 +61,33 @@ class AnswerShapeTests(unittest.TestCase):
         self.assertNotIn("$schema", data)
 
 
+class PictureAndHeadingTests(unittest.TestCase):
+    def test_inside_picture(self):
+        from app.guide_builder.pipeline import PICTURE_CLOSE, PICTURE_OPEN, _inside_picture
+        text = f"Real text here.\n{PICTURE_OPEN}\nChest 96-104\n{PICTURE_CLOSE}\nMore real text."
+        self.assertFalse(_inside_picture(text, text.index("Real")))
+        self.assertTrue(_inside_picture(text, text.index("Chest")))
+        self.assertFalse(_inside_picture(text, text.index("More")))
+
+    def test_heading_only_step_joins_the_next(self):
+        from app.guide_builder.pipeline import _merge_headings
+
+        def st(i, text, slots=(), kind="none"):
+            return {"id": f"x-{i}", "text": text, "slots": list(slots), "target": {"kind": kind}, "repeat": None,
+                    "checkpoint": None, "schedules": [], "confidence": "high", "source": {"quote": text, "page": 1}}
+        steps = [st(1, "First row (RS, set-up row):"), st(2, "k1, m1, knit to end.", kind="rows"), st(3, "Next row: purl.")]
+        out = _merge_headings(steps)
+        self.assertEqual(len(out), 2)
+        self.assertEqual(out[0]["id"], "x-2")
+        self.assertTrue(out[0]["text"].startswith("First row (RS, set-up row): k1"))
+
+    def test_last_step_heading_is_kept(self):
+        from app.guide_builder.pipeline import _merge_headings
+        only = [{"id": "x-1", "text": "Finishing:", "slots": [], "target": {"kind": "none"}, "repeat": None,
+                 "checkpoint": None, "schedules": [], "confidence": "high", "source": {"quote": "Finishing:", "page": 1}}]
+        self.assertEqual(len(_merge_headings(only)), 1)
+
+
 class ProgressTests(unittest.TestCase):
     def test_percent_rises_through_the_stages(self):
         seq = [Event("read", ""), Event("pictures", "", 1, 2), Event("outline", ""), Event("sections", "", 0, 4),
