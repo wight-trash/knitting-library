@@ -458,6 +458,7 @@ def list_recipes(
         feedback_scope_sql=feedback_scope_sql,
     )
     params = [*session_scope_params, *session_scope_params, *session_scope_params, *feedback_scope_params]
+    from app import fork_hooks; id_query += fork_hooks.HIDE_STAGED_IMPORTS_SQL  # fork: staged imports not in the library (FORK.md)
     if search:
         like = f"%{search}%"
         id_query += " AND (r.title LIKE ? OR r.description LIKE ? OR t.name LIKE ?)"
@@ -879,6 +880,7 @@ def delete_recipe(recipe_id: str, current_user: dict = Depends(get_current_user)
     if not conn.execute("SELECT id FROM recipes WHERE id=?", (recipe_id,)).fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Recipe not found")
+    from app import fork_hooks; fork_hooks.before_recipe_delete(conn, recipe_id)  # fork: stock history and guides (FORK.md)
     conn.execute("DELETE FROM recipe_categories WHERE recipe_id=?", (recipe_id,))
     conn.execute("DELETE FROM recipe_tags       WHERE recipe_id=?", (recipe_id,))
     conn.execute("DELETE FROM project_feedback  WHERE recipe_id=?", (recipe_id,))
@@ -1231,6 +1233,7 @@ def delete_project_session(recipe_id: str, session_id: str, current_user: dict =
     conn = get_db()
     try:
         sess = _get_editable_project_session(conn, recipe_id, session_id, current_user)
+        from app import fork_hooks; fork_hooks.before_sessions_delete(conn, recipe_id, session_id=session_id)  # fork: stock history (FORK.md)
         conn.execute("DELETE FROM project_feedback WHERE recipe_id=? AND session_id=?", (recipe_id, session_id))
         conn.execute("DELETE FROM project_sessions WHERE recipe_id=? AND id=?", (recipe_id, session_id))
         _log_user_action(
@@ -1253,6 +1256,7 @@ def clear_sessions(recipe_id: str, current_user: dict = Depends(get_current_user
     if not conn.execute("SELECT id FROM recipes WHERE id=?", (recipe_id,)).fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Recipe not found")
+    from app import fork_hooks; fork_hooks.before_sessions_delete(conn, recipe_id, user_id=None if current_user.get("is_admin") else current_user["id"])  # fork: stock history (FORK.md)
     if current_user.get("is_admin"):
         conn.execute("DELETE FROM project_feedback WHERE recipe_id=?", (recipe_id,))
         conn.execute("DELETE FROM project_sessions  WHERE recipe_id=?", (recipe_id,))

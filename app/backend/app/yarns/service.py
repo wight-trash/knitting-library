@@ -170,6 +170,7 @@ async def update_yarn(
 
 def delete_yarn(yarn_id: str, current_user: dict = Depends(get_current_user)):
     conn     = get_db()
+    from app import fork_hooks; fork_hooks.refuse_yarn_delete_if_used(conn, yarn_id)  # fork: no locked database (FORK.md)
     yarn_dir = YARN_DIR / yarn_id
     conn.execute("DELETE FROM yarn_colours WHERE yarn_id=?", (yarn_id,))
     conn.execute("DELETE FROM yarns        WHERE id=?",      (yarn_id,))
@@ -232,6 +233,7 @@ def update_yarn_colour(yarn_id: str, colour_id: str, body: dict = Body(...), cur
 
 def delete_yarn_colour(yarn_id: str, colour_id: str, current_user: dict = Depends(get_current_user)):
     conn   = get_db()
+    from app import fork_hooks; fork_hooks.refuse_yarn_delete_if_used(conn, yarn_id, colour_id)  # fork: no locked database (FORK.md)
     colour = conn.execute("SELECT image_path FROM yarn_colours WHERE id=? AND yarn_id=?", (colour_id, yarn_id)).fetchone()
     if not colour:
         conn.close()
