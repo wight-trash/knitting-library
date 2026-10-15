@@ -28,6 +28,7 @@ import './SettingsPage.css';
 import GuidedSettingsSection from '../fork/guided/GuidedSettingsSection'; // fork: guided versions
 import { ListChecks } from 'lucide-react'; // fork: guided versions icon
 import { ft } from '../fork/strings'; // fork
+import { releaseText } from '../fork/releases/releaseText'; // fork: no raw HTML in release notes
 
 export default function SettingsPage({ onBack }) {
   const { user, t } = useApp();
@@ -1614,7 +1615,7 @@ function AnnouncementsSection() {
                 <span>{release.title || release.name || release.tag_name}</span>
                 {release.prerelease && <em>{t('releasePrerelease')}</em>}
               </div>
-              {release.body && <div className="announcement-history-body">{release.body}</div>}
+              {releaseText(release.body) && <div className="announcement-history-body">{releaseText(release.body)}</div>}{/* fork */}
               <div className="announcement-history-meta">
                 <strong>{release.tag_name}</strong> · {formatDate(release.published_at || release.created_at)}
                 {release.html_url && (

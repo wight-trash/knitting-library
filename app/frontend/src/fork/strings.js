@@ -102,6 +102,16 @@ const STRINGS = {
   otherThings: 'Also',
   amountForSize: '{amount} for your size',
   length: 'length {length}',
+  gaugePer10: '{stitches} stitches and {rows} {rowsWord} = 10 cm',
+  gaugePer10St: '{stitches} stitches = 10 cm',
+  gaugePer10Rows: '{rows} {rowsWord} = 10 cm',
+  gaugeRows: 'rows',
+  gaugeRounds: 'rounds',
+
+  // Centimetres and DROPS sizes
+  shownInCm: 'This pattern is in inches. Measurements are shown in cm, with the pattern\'s own numbers in brackets.',
+  dropsRound: 'about {n} cm round',
+  dropsHalfNote: 'DROPS measures across the front, so the round measurement is twice this.',
 
   // Sections and steps
   stepsCount: '{n} steps',
@@ -205,7 +215,7 @@ const STRINGS = {
   addBallWeight: 'Add the ball weight to count in grams',
   boughtMore: 'Bought more',
   correct: 'Correct',
-  gramHistory: 'History in grams',
+  gramHistory: 'History',
 
   // Dialogs
   save: 'Save',

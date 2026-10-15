@@ -464,6 +464,10 @@
 .gp-measure div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--border); padding: 4px 0; }
 .gp-measure dt { color: var(--text-secondary); }
 .gp-measure dd { margin: 0; font-weight: 700; text-align: right; }
+.gp-measure .gp-measure-half { flex-wrap: wrap; }
+.gp-measure-round { display: block; font-weight: 400; font-size: 17px; color: var(--text-secondary); }
+.gp-measure-note { flex-basis: 100%; margin: 2px 0 4px !important; font-size: 17px; color: var(--text-secondary); }
+.gp-metric-note { margin-top: 10px !important; }
 
 /* ---------------------------------------------------------------- things to check */
 .gp-doubts { border-left: 5px solid var(--accent); }
@@ -683,3 +687,13 @@
 @media (prefers-reduced-motion: reduce) {
   .gp-bar-fill, .gp-live-dot, .gp-spin, .gp-skeleton { animation: none; }
 }
+
+/* ---------------------------------------------------------------- centimetres */
+/* The pattern's own value (inches, yards, ounces) after the metric one: smaller and quieter. */
+.gp-orig {
+  font-size: 0.82em;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.gp-num--btn .gp-orig { font-weight: 600; }
+.gp-allsizes-value .gp-orig { display: block; white-space: nowrap; }

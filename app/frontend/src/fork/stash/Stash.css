@@ -397,6 +397,11 @@
   padding-top: 8px;
   border-top: 1px dashed var(--border);
 }
+/* A yarn counted in grams: the grams line, Bought more, Correct and History replace upstream's whole-skein
+   +/- counter and its History toggle on the same card. Whole-balls mode and the switch off keep upstream's. */
+.inv-card:has(.st-card-extras--grams) .inv-qty-row,
+.inv-card:has(.st-card-extras--grams) .inv-log-toggle,
+.inv-card:has(.st-card-extras--grams) .inv-log { display: none; }
 .st-card-amount { margin: 0; font-size: 17px; font-weight: 700; color: var(--text-primary); }
 .st-card-extras .st-link { font-size: 15px; min-height: 44px; }
 .st-card-buttons { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
@@ -421,3 +426,16 @@
 }
 .ku-switch .theme-toggle { display: block; }
 .ku-switch:disabled { opacity: 0.6; cursor: wait; }
+
+/* iPhone and iPad: Safari does not shrink the page for the on-screen keyboard, so the upstream yarn form's Save
+   button ended up behind it. While a box in the form is being typed in, the form moves to the top of the screen
+   and is short enough for its header and buttons to stay above the keyboard (the boxes scroll inside it). */
+@media (pointer: coarse) {
+  .modal-overlay:has(> .yum-modal :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), textarea):focus) {
+    align-items: flex-start;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  .yum-modal:has(:is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), textarea):focus) {
+    max-height: 45dvh;
+  }
+}

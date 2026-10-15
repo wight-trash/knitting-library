@@ -85,7 +85,10 @@ Edits to upstream files, all marked `fork`:
   four upstream fixes below (`list_recipes`, `delete_recipe`, `delete_project_session`, `clear_sessions`);
 * `app/backend/requirements.txt`: `pypdf`;
 * `app/frontend/src/pages/RecipeViewer.jsx`: imports, the Guided tab and one branch;
-* `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line;
+* `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line; the update notes go through
+  `fork/releases/releaseText.js` (import and one line);
+* `app/frontend/src/components/AnnouncementModal.jsx`: import and two lines, release notes without raw HTML (GitHub's
+  `<img>` tags showed as code);
 * `app/frontend/src/components/YarnUploadModal.jsx`: imports, the stash hook, two calls in Save, the shop picture
   fetched through `/api/stash/image`, the ball band and Ball details blocks, and "Please check" on five boxes;
 * `app/frontend/src/pages/InventoryPage.jsx`: import, one prop, one callback, the stash line on each yarn card;

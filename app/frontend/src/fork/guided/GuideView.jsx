@@ -5,6 +5,9 @@ import { ft, ftParts } from '../strings';
 import {
   allSizes, excludedBy, lowerFirst, numbersOnly, resolve, slotText, splitTemplate, tidy, withUnit,
 } from './guideValues';
+import {
+  converts, doubled, gaugeMetric, isDrops, isHalfWidth, metricParts, metricValue, needleSize, stripUnitWord,
+} from './units';
 
 // ---------------------------------------------------------------- remembered choices
 function readStored(key) {
@@ -63,17 +66,63 @@ function formatDate(iso) {
 }
 
 /** A number for the chosen size. Tapping it opens the list of every size (the list is drawn by the parent). */
-function Num({ text, perSize, open, onToggle, muted }) {
-  if (!perSize || !onToggle) return <span className={`gp-num ${muted ? 'gp-num--muted' : ''}`}>{text}</span>;
+function Num({ text, original, perSize, open, onToggle, muted }) {
+  const inner = <>{text}{original && <Orig text={original} />}</>;
+  if (!perSize || !onToggle) return <span className={`gp-num ${muted ? 'gp-num--muted' : ''}`}>{inner}</span>;
   return (
     <button type="button" className={`gp-num gp-num--btn ${muted ? 'gp-num--muted' : ''} ${open ? 'gp-num--open' : ''}`}
       aria-expanded={open} onClick={onToggle}>
-      {text}
+      {inner}
     </button>
   );
 }
 
-function AllSizesList({ value, sizes, sel, onClose }) {
+// ---------------------------------------------------------------- centimetres
+// The owner's rule: cm by default. Values in inches, yards or ounces show metric first, the pattern's own after.
+
+/** The pattern's own value, small, after the metric one. */
+function Orig({ text }) {
+  return <span className="gp-orig"> ({text})</span>;
+}
+
+/** Metric with the original: "11 cm (4¼ in)". */
+function Metric({ conv }) {
+  return <>{conv.main}<Orig text={conv.original} /></>;
+}
+
+/** Free text from the pattern with any inches, yards or ounces shown in metric. */
+function MetricText({ text, cable }) {
+  const parts = metricParts(tidy(text), { cable });
+  if (!parts.some(p => p.kind === 'metric')) return <>{tidy(text)}</>;
+  return <>{parts.map((p, i) => (p.kind === 'text'
+    ? <React.Fragment key={i}>{p.text}</React.Fragment> : <Metric key={i} conv={p} />))}</>;
+}
+
+const METRIC_UNIT = { in: 'cm', yd: 'm', oz: 'g' };
+
+/** The metric form of a value for the selection, or null when it is not converted. r = resolve(value, sel).
+ *  When the pattern also gives the value in metric (alt), its own number is used. */
+function metricFor(value, r, sel, opts) {
+  if (!converts(value?.unit)) return null;
+  if (r.state === 'value') {
+    const alt = value.alt;
+    if (alt && alt.unit === METRIC_UNIT[value.unit] && !opts?.cable) {
+      const ra = resolve(alt, sel);
+      if (ra.state === 'value') return { main: `${ra.text} ${alt.unit}`, original: metricValue(r.text, value.unit).original };
+    }
+    return metricValue(r.text, value.unit, opts);
+  }
+  if (r.state === 'unchosen') return metricValue(numbersOnly(r.text), value.unit, opts);
+  return null;
+}
+
+/** One size's value in the "all sizes" list, in metric when the pattern is not. */
+function SizeValue({ text, value, cable }) {
+  const conv = converts(value.unit) ? metricValue(text, value.unit, { cable }) : null;
+  return conv ? <Metric conv={conv} /> : text;
+}
+
+function AllSizesList({ value, sizes, sel, onClose, cable }) {
   const rows = allSizes(value, sizes, sel);
   if (!rows.length) return null;
   const groups = [...new Set(rows.map(r => r.group))];
@@ -91,14 +140,15 @@ function AllSizesList({ value, sizes, sel, onClose }) {
               <li key={r.key} className={r.chosen ? 'gp-allsizes-chosen' : ''}>
                 <span className="gp-allsizes-size">{r.size}</span>
                 <span className="gp-allsizes-value">
-                  {r.value === '-' ? ft('notThisSize') : r.value == null || r.value === '' ? ft('notGiven') : tidy(r.value)}
+                  {r.value === '-' ? ft('notThisSize') : r.value == null || r.value === '' ? ft('notGiven')
+                    : <SizeValue text={tidy(r.value)} value={value} cable={cable} />}
                 </span>
               </li>
             ))}
           </ul>
         </div>
       ))}
-      <p className="gp-allsizes-source">{tidy(value.text)}</p>
+      <p className="gp-allsizes-source">{tidy(value.text)}</p>{/* the pattern's own words, unconverted */}
     </div>
   );
 }
@@ -108,9 +158,11 @@ function factValue(value, sel, fallbackUnit, key, openKey, setOpenKey) {
   if (!value) return null;
   const r = resolve(value, sel);
   if (r.state === 'na' || r.state === 'na-choice' || r.state === 'missing') return null;
-  const text = r.state === 'value' ? withUnit(r.text, value, fallbackUnit) : withUnitRaw(r.text, value, fallbackUnit);
+  const conv = metricFor(value, r, sel);
+  const text = conv ? conv.main
+    : r.state === 'value' ? withUnit(r.text, value, fallbackUnit) : withUnitRaw(r.text, value, fallbackUnit);
   return (
-    <Num key={key} text={text} perSize={r.perSize} muted={r.state === 'unchosen'} open={openKey === key}
+    <Num key={key} text={text} original={conv?.original} perSize={r.perSize} muted={r.state === 'unchosen'} open={openKey === key}
       onToggle={() => setOpenKey(openKey === key ? null : key)} />
   );
 }
@@ -144,16 +196,25 @@ function Step({ step, index, sizes, sel }) {
   const na = Boolean(excluded);
 
   const parts = splitTemplate(step.text);
+  let unitToDrop = null;   // a slot shown in cm: the template's own "inches" after it goes
   const textNodes = parts.map((p, i) => {
-    if (p.kind === 'text') return <React.Fragment key={i}>{p.text}</React.Fragment>;
+    if (p.kind === 'text') {
+      const text = unitToDrop ? stripUnitWord(p.text, unitToDrop) : p.text;
+      unitToDrop = null;
+      return <MetricText key={i} text={text} />;
+    }
+    unitToDrop = null;
     const value = slots[p.name];
     if (!value) return <React.Fragment key={i}>{`{${p.name}}`}</React.Fragment>;
     const r = resolved[p.name];
     const key = `slot:${p.name}`;
-    const shown = r.state === 'value' ? slotText(r, value, p.after) : (numbersOnly(value.text) || '?');
+    const conv = metricFor(value, r.state === 'value' ? r : { ...r, state: 'unchosen', text: value.text }, sel);
+    if (conv) unitToDrop = value.unit;
+    const shown = conv ? conv.main
+      : r.state === 'value' ? slotText(r, value, p.after) : (numbersOnly(value.text) || '?');
     return (
-      <Num key={i} text={shown} perSize={r.perSize} muted={r.state !== 'value'} open={openKey === key}
-        onToggle={() => setOpenKey(openKey === key ? null : key)} />
+      <Num key={i} text={shown} original={conv?.original} perSize={r.perSize} muted={r.state !== 'value'}
+        open={openKey === key} onToggle={() => setOpenKey(openKey === key ? null : key)} />
     );
   });
 
@@ -172,8 +233,8 @@ function Step({ step, index, sizes, sel }) {
         node = (
           <>
             <T k="untilLength" vars={{ length: v }} />
-            {t.measured_from ? ` ${tidy(t.measured_from)}` : ''}
-            {t.ending ? `, ${lowerFirst(t.ending)}` : ''}
+            {t.measured_from ? <> <MetricText text={t.measured_from} /></> : ''}
+            {t.ending ? <>, <MetricText text={lowerFirst(t.ending)} /></> : ''}
           </>
         );
       }
@@ -181,9 +242,9 @@ function Step({ step, index, sizes, sel }) {
       const v = factValue(t.until_row, sel, '', 'target', openKey, setOpenKey);
       if (v) node = <T k="untilRow" vars={{ row: v }} />;
     } else if (t.kind === 'match' && t.match?.text) {
-      node = tidy(t.match.text);
+      node = <MetricText text={t.match.text} />;
     }
-    if (node && t.kind !== 'length' && t.ending) node = <>{node}, {lowerFirst(t.ending)}</>;
+    if (node && t.kind !== 'length' && t.ending) node = <>{node}, <MetricText text={lowerFirst(t.ending)} /></>;
     if (node) facts.push({ key: 'target', label: ft('targetLabel'), node, value: t.count || t.length || t.until_row });
   }
 
@@ -196,8 +257,8 @@ function Step({ step, index, sizes, sel }) {
     if (times) bits.push(<React.Fragment key="times">{times}</React.Fragment>);
     const until = factValue(rep.until_row, sel, '', 'rep-until', openKey, setOpenKey);
     if (until) bits.push(<T key="until" k="untilRow" vars={{ row: until }} />);
-    if (rep.until_text) bits.push(<React.Fragment key="text">{tidy(rep.until_text)}</React.Fragment>);
-    if (rep.includes_earlier_text) bits.push(<React.Fragment key="earlier">{tidy(rep.includes_earlier_text)}</React.Fragment>);
+    if (rep.until_text) bits.push(<MetricText key="text" text={rep.until_text} />);
+    if (rep.includes_earlier_text) bits.push(<MetricText key="earlier" text={rep.includes_earlier_text} />);
     if (bits.length) {
       const joined = bits.flatMap((b, i) => (i ? [<React.Fragment key={`sep${i}`}>, </React.Fragment>, b] : [b]));
       facts.push({ key: 'repeat', label: ft('repeatLabel'), node: <>{joined}</> });
@@ -224,7 +285,7 @@ function Step({ step, index, sizes, sel }) {
       }).filter(Boolean);
       if (parts2.length) node = <>{node}: {parts2.join(', ')}</>;
     } else if (!cp.total && cp.text) {
-      node = tidy(cp.text);
+      node = <MetricText text={cp.text} />;
     }
     if (node) facts.push({ key: 'checkpoint', label: ft('checkLabel'), node });
   }
@@ -290,18 +351,30 @@ function Step({ step, index, sizes, sel }) {
 function Schedule({ schedule, sel }) {
   const slots = Object.fromEntries((schedule.slots || []).map(s => [s.name, s.value]));
   const parts = splitTemplate(schedule.action || '');
+  const dropAfter = new Set();   // text parts straight after a slot shown in cm lose the template's "inches"
   const text = parts.map((p, i) => {
-    if (p.kind === 'text') return <React.Fragment key={i}>{p.text}</React.Fragment>;
+    if (p.kind === 'text') {
+      const prev = parts[i - 1];
+      const unit = dropAfter.has(i) && prev ? slots[prev.name]?.unit : null;
+      return <MetricText key={i} text={unit ? stripUnitWord(p.text, unit) : p.text} />;
+    }
     const v = slots[p.name];
     if (!v) return <React.Fragment key={i}>{`{${p.name}}`}</React.Fragment>;
     const r = resolve(v, sel);
-    return <span key={i} className={`gp-num ${r.state !== 'value' ? 'gp-num--muted' : ''}`}>{r.state === 'value' ? slotText(r, v, p.after) : tidy(v.text)}</span>;
+    const conv = metricFor(v, r.state === 'value' ? r : { ...r, state: 'unchosen', text: v.text }, sel);
+    if (conv) dropAfter.add(i + 1);
+    return (
+      <span key={i} className={`gp-num ${r.state !== 'value' ? 'gp-num--muted' : ''}`}>
+        {conv ? <Metric conv={conv} /> : r.state === 'value' ? slotText(r, v, p.after) : tidy(v.text)}
+      </span>
+    );
   });
   const extra = [];
   const every = schedule.every ? resolve(schedule.every, sel) : null;
   if (every && (every.state === 'value' || every.state === 'unchosen')) {
     const unit = schedule.every_unit && schedule.every_unit !== 'other' ? ` ${schedule.every_unit}` : '';
-    extra.push(ft('everyN', { n: `${every.text}${every.state === 'value' ? unit : ''}` }));
+    const conv = every.state === 'value' ? metricValue(every.text, schedule.every_unit) : null;
+    extra.push(ft('everyN', { n: conv ? `${conv.main} (${conv.original})` : `${every.text}${every.state === 'value' ? unit : ''}` }));
   }
   const times = schedule.times ? resolve(schedule.times, sel) : null;
   if (times && (times.state === 'value' || times.state === 'unchosen')) extra.push(ft('timesN', { n: numbersOnly(times.text) }));
@@ -362,6 +435,14 @@ function Section({ section, sizes, sel, open, onToggle }) {
 }
 
 // ---------------------------------------------------------------- materials
+/** "31.5 stitches and 53 rounds = 10 cm" from a gauge given over inches. */
+function gaugeText(per10) {
+  const rowsWord = ft(per10.rowsUnit === 'rounds' ? 'gaugeRounds' : 'gaugeRows');
+  if (per10.stitches && per10.rows) return ft('gaugePer10', { stitches: per10.stitches, rows: per10.rows, rowsWord });
+  if (per10.stitches) return ft('gaugePer10St', { stitches: per10.stitches });
+  return ft('gaugePer10Rows', { rows: per10.rows, rowsWord });
+}
+
 function Materials({ guide, sel, sizes }) {
   const yarns = (guide.yarns || []).filter(y => excludedBy(y.applies_to, sel, sizes)?.reason !== 'choice');
   const needles = (guide.needles || []).filter(n => excludedBy(n.applies_to, sel, sizes)?.reason !== 'choice');
@@ -372,10 +453,13 @@ function Materials({ guide, sel, sizes }) {
   const amount = (value) => {
     if (!value) return null;
     const r = resolve(value, sel);
-    if (r.state === 'value') return <span className="gp-num">{withUnit(r.text, value)}</span>;
-    if (r.state === 'unchosen') return <span>{tidy(value.text)}</span>;
+    if (r.state === 'value') {
+      const conv = metricFor(value, r, sel);
+      return <span className="gp-num">{conv ? <Metric conv={conv} /> : withUnit(r.text, value)}</span>;
+    }
+    if (r.state === 'unchosen') return <span><MetricText text={value.text} /></span>;
     if (r.state === 'na') return <span>{ft('notThisSize')}</span>;
-    return value.text ? <span>{tidy(value.text)}</span> : null;
+    return value.text ? <span><MetricText text={value.text} /></span> : null;
   };
 
   return (
@@ -390,10 +474,10 @@ function Materials({ guide, sel, sizes }) {
                 <li key={y.id}>
                   <strong>{tidy(y.name)}</strong>
                   {[y.weight, y.fibre, y.colour, y.ball].filter(Boolean).length > 0 && (
-                    <span className="gp-mat-sub">{[y.weight, y.fibre, y.colour, y.ball].filter(Boolean).map(tidy).join(' · ')}</span>
+                    <span className="gp-mat-sub"><MetricText text={[y.weight, y.fibre, y.colour, y.ball].filter(Boolean).map(tidy).join(' · ')} /></span>
                   )}
                   {y.amount && <span className="gp-mat-amount">{amount(y.amount)}</span>}
-                  {y.alternatives_text && <span className="gp-mat-sub">{tidy(y.alternatives_text)}</span>}
+                  {y.alternatives_text && <span className="gp-mat-sub"><MetricText text={y.alternatives_text} /></span>}
                 </li>
               ))}
             </ul>
@@ -405,11 +489,19 @@ function Materials({ guide, sel, sizes }) {
             <ul className="gp-mat-list">
               {needles.map(n => {
                 const len = n.length && (n.length.by_size || n.length.by_choice) ? resolve(n.length, sel) : null;
+                const lenConv = len?.state === 'value' ? metricFor(n.length, len, sel, { cable: true }) : null;
+                const size = needleSize(n);
+                const sizeInText = size && !size.original && new RegExp(`^${size.main.replace('.', '[.,]').replace(' mm', '\\s*mm')}`, 'i').test(tidy(n.text));
                 return (
                   <li key={n.id}>
-                    <span>{tidy(n.text)}</span>
-                    {n.use && <span className="gp-mat-sub">{tidy(n.use)}</span>}
-                    {len?.state === 'value' && <span className="gp-mat-amount">{ft('length', { length: withUnit(len.text, n.length) })}</span>}
+                    {size && !sizeInText && <strong>{size.main}{size.original && <Orig text={size.original} />}</strong>}
+                    <span className={size && !sizeInText ? 'gp-mat-sub' : undefined}><MetricText text={n.text} cable /></span>
+                    {n.use && <span className="gp-mat-sub"><MetricText text={n.use} /></span>}
+                    {len?.state === 'value' && (
+                      <span className="gp-mat-amount">
+                        <T k="length" vars={{ length: lenConv ? <Metric conv={lenConv} /> : withUnit(len.text, n.length) }} />
+                      </span>
+                    )}
                   </li>
                 );
               })}
@@ -420,12 +512,16 @@ function Materials({ guide, sel, sizes }) {
           <div className="gp-mat">
             <h3 className="gp-h3">{ft('gauge')}</h3>
             <ul className="gp-mat-list">
-              {gauges.map((g, i) => (
-                <li key={i}>
-                  <span>{tidy(g.text)}</span>
-                  {g.condition && <span className="gp-mat-sub">{tidy(g.condition)}</span>}
-                </li>
-              ))}
+              {gauges.map((g, i) => {
+                const per10 = gaugeMetric(g);
+                return (
+                  <li key={i}>
+                    {per10 && <strong>{gaugeText(per10)}</strong>}
+                    <span className={per10 ? 'gp-mat-sub' : undefined}>{per10 ? `(${tidy(g.text)})` : <MetricText text={g.text} />}</span>
+                    {g.condition && <span className="gp-mat-sub"><MetricText text={g.condition} /></span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -435,7 +531,7 @@ function Materials({ guide, sel, sizes }) {
             <ul className="gp-mat-list">
               {notions.map((n, i) => (
                 <li key={i}>
-                  <span>{tidy(n.text)}</span>
+                  <span><MetricText text={n.text} /></span>
                   {n.amount && (n.amount.by_size || n.amount.by_choice) && <span className="gp-mat-amount">{amount(n.amount)}</span>}
                 </li>
               ))}
@@ -472,11 +568,15 @@ function Doubts({ doubts }) {
 }
 
 // ---------------------------------------------------------------- size and choices
-function SizePicker({ options, sel, sizeId, setSize, setChoice, measurements }) {
+function SizePicker({ options, sel, sizeId, setSize, setChoice, measurements, pattern }) {
   const sizes = options?.sizes || [];
   const choices = options?.choices || [];
   const chosenSize = sel.sizeIdx != null ? sizes[sel.sizeIdx] : null;
   const missingChoice = choices.find(c => !sel.chosen[c.id]);
+  const drops = isDrops(pattern);
+  const metricPattern = /^cm/.test(pattern?.units_in_source || '');   // sizes with no unit are in cm
+  const imperial = /^in/.test(pattern?.units_in_source || '');
+  let explained = false;   // the DROPS note goes under the first half width only
   return (
     <section className="gp-card gp-picker" aria-labelledby="gp-size-title">
       <h2 id="gp-size-title" className="gp-h2">{ft('yourSize')}</h2>
@@ -516,15 +616,26 @@ function SizePicker({ options, sel, sizeId, setSize, setChoice, measurements }) 
           {measurements.map((m, i) => {
             const r = resolve(m.value, sel);
             if (r.state !== 'value') return null;
+            const conv = metricFor(m.value, r, sel);
+            const shown = conv ? <Metric conv={conv} /> : withUnit(r.text, m.value, metricPattern ? 'cm' : '');
+            const half = drops && !conv && isHalfWidth(m.name) && (!m.value.unit || m.value.unit === 'cm')
+              ? doubled(r.text) : null;
+            const explain = half && !explained;
+            if (half) explained = true;
             return (
-              <div key={i}>
+              <div key={i} className={half ? 'gp-measure-half' : undefined}>
                 <dt>{tidy(m.name)}</dt>
-                <dd>{withUnit(r.text, m.value)}</dd>
+                <dd>
+                  {shown}
+                  {half && <span className="gp-measure-round">{ft('dropsRound', { n: half })}</span>}
+                </dd>
+                {explain && <p className="gp-measure-note">{ft('dropsHalfNote')}</p>}
               </div>
             );
           })}
         </dl>
       )}
+      {chosenSize && imperial && <p className="gp-muted gp-metric-note">{ft('shownInCm')}</p>}
     </section>
   );
 }
@@ -592,7 +703,7 @@ export default function GuideView({ recipeId, recipe, guideRow, canRemake, build
       <div className="gp-layout">
         <div className="gp-aside">
           <SizePicker options={options} sel={sel} sizeId={sizeId} setSize={setSize} setChoice={setChoice}
-            measurements={measurements} />
+            measurements={measurements} pattern={guide.pattern} />
           <Doubts doubts={guide.doubts} />
           <Materials guide={guide} sel={sel} sizes={sizes} />
         </div>

@@ -663,9 +663,14 @@ class Builder:
         repeat = None
         if rp:
             until_q = rp.get("until_quote")
-            repeat = {"rows_in_repeat": q(rp.get("rows_quote"), "rows"), "times": q(rp.get("times_quote"), "times"),
+            # No unit forced: the quote says whether the block is rows or rounds ("Rounds 1 and 2").
+            repeat = {"rows_in_repeat": q(rp.get("rows_quote")), "times": q(rp.get("times_quote"), "times"),
                       "until_row": q(until_q, "rows") if until_q and re.search(r"\brow\s*\d", until_q, re.I) else None,
                       "until_text": until_q, "includes_first": rp.get("includes_first"), "includes_earlier_text": None}
+            block = repeat["rows_in_repeat"]
+            if block is not None and block.get("unit") is None:
+                words = (rp.get("rows_quote") or "").lower()
+                block["unit"] = "rounds" if re.search(r"\b(round|rnd)", words) else ("rows" if "row" in words else None)
         cp_q = st.get("checkpoint_quote")
         checkpoint = None
         if cp_q:
