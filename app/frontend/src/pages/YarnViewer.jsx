@@ -14,6 +14,7 @@ import {
 import YarnUploadModal from '../components/YarnUploadModal';
 import CurrencyInput from '../components/CurrencyInput';
 import './YarnViewer.css';
+import BallDetailsSection from '../fork/stash/BallDetailsSection'; // fork: stash
 
 export default function YarnViewer({ yarnId, onBack, onDeleted }) {
   const { t, currencySymbol, language } = useApp();
@@ -166,6 +167,7 @@ export default function YarnViewer({ yarnId, onBack, onDeleted }) {
             {yarn.seller       && <SpecRow icon="🏪" label={t('seller')}       value={yarn.seller} />}
             {yarn.price_per_skein && <SpecRow icon="💰" label={t('pricePerSkein')} value={`${currencySymbol}${yarn.price_per_skein}`} />}
           </div>
+          <BallDetailsSection yarnId={yarn.id} yarnName={yarn.name} /> {/* fork: stash */}
 
           {yarn.product_info && (
             <div className="yv-product-info">

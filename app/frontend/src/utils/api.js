@@ -739,13 +739,24 @@ export function yarnColourImageUrl(yarnId, colourId) {
 }
 
 export async function addYarnColour(yarnId, formData) {
+  // fork: the endpoint takes JSON and the picture has its own endpoint; sending the form failed with 422 (FORK.md)
+  const body = { name: formData.get('name') || '' };
+  if (formData.get('price')) body.price = formData.get('price');
   const res = await fetch(`${API_BASE}/yarns/${yarnId}/colours`, {
     method: 'POST',
-    headers: authHeaders(),
-    body: formData,
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error('Failed to add colour');
-  return res.json();
+  const colour = await res.json();
+  const image = formData.get('image');
+  if (image && colour.id) {
+    const fd = new FormData();
+    fd.append('file', image);
+    const up = await fetch(`${API_BASE}/yarns/${yarnId}/colours/${colour.id}/image`, { method: 'POST', headers: authHeaders(), body: fd });
+    if (!up.ok) throw new Error('The colour was added, but its picture could not be saved');
+  }
+  return colour;
 }
 
 export async function deleteYarnColour(yarnId, colourId) {

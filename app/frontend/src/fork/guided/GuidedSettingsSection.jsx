@@ -1,7 +1,29 @@
-// Admin settings for guided versions: the on/off switch and the model. Fork-only (FORK.md).
+// Admin settings card "Knitting upgrades": the switches for guided versions and the stash in grams, and the AI
+// model they use. Fork-only (FORK.md). Mounted by SettingsPage.jsx under the same menu entry as before.
 import { useEffect, useState } from 'react';
-import { getGuidedSettings, saveGuidedSettings, getGuidedStatus } from '../forkApi';
+import { getForkSettings, saveForkSettings, getGuidedStatus } from '../forkApi';
+import { forgetGuidedStatus } from './useGuidedStatus';
+import { forgetStashStatus } from '../stash/stashStore';
 import { ft } from '../strings';
+import '../stash/Stash.css';
+
+function Switch({ on, onToggle, disabled, label }) {
+  return (
+    <button
+      type="button"
+      className="ku-switch"
+      onClick={onToggle}
+      disabled={disabled}
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+    >
+      <span className={`theme-toggle ${on ? 'dark' : ''}`} aria-hidden="true">
+        <span className="theme-toggle-knob" />
+      </span>
+    </button>
+  );
+}
 
 export default function GuidedSettingsSection() {
   const [settings, setSettings] = useState(null);
@@ -12,8 +34,8 @@ export default function GuidedSettingsSection() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getGuidedSettings()
-      .then((s) => { setSettings(s); setModel(s.model); })
+    getForkSettings()
+      .then((s) => { setSettings(s); setModel(s.guide_model); })
       .catch((e) => setError(e.message));
     getGuidedStatus().then((s) => setConfigured(Boolean(s.configured))).catch(() => {});
   }, []);
@@ -21,8 +43,10 @@ export default function GuidedSettingsSection() {
   const save = async (values) => {
     setSaving(true); setMessage(''); setError('');
     try {
-      const s = await saveGuidedSettings(values);
-      setSettings(s); setModel(s.model);
+      const s = await saveForkSettings(values);
+      setSettings(s); setModel(s.guide_model);
+      forgetGuidedStatus();
+      forgetStashStatus();
       setMessage(ft('settingsSaved'));
     } catch (e) {
       setError(e.message);
@@ -45,16 +69,24 @@ export default function GuidedSettingsSection() {
               <p className="settings-row-label">{ft('settingsEnable')}</p>
               <p className="settings-row-sub">{ft('settingsEnableSub')}</p>
             </div>
-            <button
-              className={`theme-toggle ${settings.enabled ? 'dark' : ''}`}
-              onClick={() => save({ enabled: !settings.enabled })}
+            <Switch
+              on={settings.guides_enabled}
+              onToggle={() => save({ guides_enabled: !settings.guides_enabled })}
               disabled={saving}
-              role="switch"
-              aria-checked={settings.enabled}
-              aria-label={ft('settingsEnable')}
-            >
-              <span className="theme-toggle-knob" />
-            </button>
+              label={ft('settingsEnable')}
+            />
+          </div>
+          <div className="ai-settings-card ai-enable-card">
+            <div className="settings-row-info">
+              <p className="settings-row-label">{ft('settingsStash')}</p>
+              <p className="settings-row-sub">{ft('settingsStashSub')}</p>
+            </div>
+            <Switch
+              on={settings.stash_enabled}
+              onToggle={() => save({ stash_enabled: !settings.stash_enabled })}
+              disabled={saving}
+              label={ft('settingsStash')}
+            />
           </div>
           {!configured && <p className="settings-row-sub" role="note">{ft('settingsNeedsAI')}</p>}
           <div className="ai-settings-card">
@@ -70,7 +102,7 @@ export default function GuidedSettingsSection() {
               spellCheck={false}
               autoCapitalize="off"
             />
-            <button className="btn-primary" onClick={() => save({ model })} disabled={saving || !model.trim() || model === settings.model}>
+            <button className="btn-primary" onClick={() => save({ guide_model: model })} disabled={saving || !model.trim() || model === settings.guide_model}>
               {ft('settingsSave')}
             </button>
           </div>

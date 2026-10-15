@@ -10,6 +10,9 @@ import { useApp } from '../utils/AppContext';
 import { createInventoryItem, createYarn, updateYarn, yarnImageUrl, scrapeYarnUrl } from '../utils/api';
 import CurrencyInput from './CurrencyInput';
 import './YarnUploadModal.css';
+import useStashYarnForm from '../fork/stash/useStashYarnForm'; // fork: stash
+import BallBandCapture from '../fork/stash/BallBandCapture'; // fork: stash
+import BallDetailsFields, { CheckBadge } from '../fork/stash/BallDetailsFields'; // fork: stash
 
 const EMPTY = {
   name: '', wool_type: '', yardage: '', needles: '',
@@ -36,6 +39,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
   const [urlSuccess, setUrlSuccess] = useState(false);
 
   const hasExistingImage = isEdit && !!editYarn.image_path && !imageFile;
+  const stash = useStashYarnForm({ isEdit, editYarn, fields, setFields, setError, imageFile, setImageFile, setImagePreview, hasExistingImage }); // fork: stash
 
   // Close on Escape
   useEffect(() => {
@@ -65,6 +69,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
 
   const handleSubmit = async () => {
     if (!fields.name.trim()) { setError(t('fieldRequired').replace('{FIELD}', t('yarnName'))); return; }
+    if (!stash.validate()) return; // fork: stash
     setSaving(true); setError('');
     try {
       const fd = new FormData();
@@ -73,6 +78,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
       });
       if (imageFile) fd.append('image', imageFile);
       const result = isEdit ? await updateYarn(editYarn.id, fd) : await createYarn(fd);
+      await stash.afterSave(result); // fork: stash
       let stockItem = null;
       const quantity = Math.max(0, Number(stockQuantity) || 0);
       if (!isEdit && allowStockQuantity && quantity > 0) {
@@ -117,7 +123,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
       // If the scraper found an image URL and no image has been set yet, fetch and use it
       if (data.image_url && !imageFile) {
         try {
-          const imgResp = await fetch(data.image_url);
+          const imgResp = await stash.fetchImage(data.image_url); // fork: stash (was fetch(data.image_url), blocked by the page's CSP)
           const blob = await imgResp.blob();
           const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
           const file = new File([blob], `yarn-import.${ext}`, { type: blob.type });
@@ -160,6 +166,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
         </div>
 
         <div className="yum-body">
+          {stash.enabled && <BallBandCapture {...stash.bandProps} />} {/* fork: stash */}
           {/* Image upload */}
           <div
             className={`yum-image-drop ${dragOver ? 'dragover' : ''}`}
@@ -226,7 +233,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
           {/* Fields */}
           <div className="yum-fields">
             <div className="yum-row">
-              <Field label={t('yarnName')} required>
+              <Field label={t('yarnName')} required check={stash.check('name')} /* fork: stash */>
                 <input
                   type="text" value={fields.name} placeholder={t('yarnName')}
                   onChange={(e) => set('name', e.target.value)}
@@ -235,7 +242,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
               </Field>
             </div>
 
-            <Field label={t('woolType')}>
+            <Field label={t('woolType')} check={stash.check('wool_type')} /* fork: stash */>
               <input
                 type="text" value={fields.wool_type}
                 placeholder={t('woolTypePlaceholder')}
@@ -245,7 +252,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
             </Field>
 
             <div className="yum-row">
-              <Field label={t('yardage')}>
+              <Field label={t('yardage')} check={stash.check('yardage')} /* fork: stash */>
                 <input
                   type="text" value={fields.yardage}
                   placeholder={t('yardagePlaceholder')}
@@ -253,7 +260,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
                   className="yum-input"
                 />
               </Field>
-              <Field label={t('needles')}>
+              <Field label={t('needles')} check={stash.check('needles')} /* fork: stash */>
                 <input
                   type="text" value={fields.needles}
                   placeholder={t('needlesPlaceholder')}
@@ -264,7 +271,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
             </div>
 
             <div className="yum-row">
-              <Field label={t('tension')}>
+              <Field label={t('tension')} check={stash.check('tension')} /* fork: stash */>
                 <input
                   type="text" value={fields.tension}
                   placeholder={t('tensionPlaceholder')}
@@ -309,6 +316,7 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
               />
             </Field>
 
+            {stash.enabled && <BallDetailsFields {...stash.ballProps} />} {/* fork: stash */}
             {!isEdit && allowStockQuantity && (
               <Field label={t('initialStockQuantity')}>
                 <input
@@ -339,11 +347,12 @@ export default function YarnUploadModal({ onClose, onSuccess, editYarn, allowSto
   );
 }
 
-function Field({ label, required, children }) {
+function Field({ label, required, check, children }) { // fork: stash (check)
   return (
     <div className="yum-field">
       <label className="yum-label">
         {label}{required && <span className="yum-required">*</span>}
+        {check && <CheckBadge />} {/* fork: stash */}
       </label>
       {children}
     </div>
