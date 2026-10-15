@@ -1,5 +1,8 @@
 """Database tables owned by this fork (wight-trash/knitting-library), kept apart from upstream's schema code.
 
+Version 1: guided knitting (guide_jobs, guides). Version 2: the stash in grams (yarn_specs, stash_ledger), see
+docs/guided-knitting/PHASE2-STASH.md.
+
 Upstream builds its schema in app/core/foundation.py. The fork never edits that: it adds its own tables here, with
 CREATE TABLE IF NOT EXISTS, and records its own schema version in app_settings (key `fork_schema_version`). No
 foreign keys point at upstream tables, because upstream deletes rows (recipes, project sessions) directly.
@@ -11,7 +14,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 
-FORK_SCHEMA_VERSION = 1
+FORK_SCHEMA_VERSION = 2
 _done = False
 _lock = threading.Lock()
 
@@ -44,6 +47,37 @@ MIGRATIONS: dict[int, str] = {
         review_state  TEXT NOT NULL DEFAULT 'unchecked',   -- unchecked, checked
         updated_at    TEXT NOT NULL
     );
+    """,
+    2: """
+    CREATE TABLE IF NOT EXISTS yarn_specs (
+        yarn_id          TEXT PRIMARY KEY,        -- upstream yarns.id (no foreign key)
+        grams_per_ball   REAL,
+        metres_per_ball  REAL,
+        weight           TEXT,                    -- as the knitter or band says: "DK", "Aran", "DROPS group B"
+        weight_category  INTEGER,                 -- Craft Yarn Council 0-7 when known
+        fibre            TEXT,
+        needle_mm_min    REAL,
+        needle_mm_max    REAL,
+        gauge_stitches   REAL,
+        gauge_rows       REAL,
+        gauge_over_cm    REAL,
+        care             TEXT,
+        source           TEXT NOT NULL DEFAULT 'manual',   -- manual, ball_band, shop_link
+        updated_at       TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS stash_ledger (
+        id                 TEXT PRIMARY KEY,
+        item_id            TEXT NOT NULL,         -- upstream inventory_items.id (type 'yarn'), no foreign key
+        change_g           REAL NOT NULL,         -- + adds, - removes
+        reason             TEXT NOT NULL,         -- opening, purchase, correction, ball_count, project_reserve,
+                                                  -- project_release, project_use, leftover
+        project_session_id TEXT,                  -- for Phase 6
+        note               TEXT NOT NULL DEFAULT '',
+        created_at         TEXT NOT NULL,
+        created_by         TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_stash_ledger_item ON stash_ledger (item_id, created_at);
     """,
 }
 

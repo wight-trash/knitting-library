@@ -15,6 +15,7 @@ from app.review.routes import router as review_router
 from app.stats.routes import router as stats_router
 from app.yarns.routes import router as yarns_router
 from app.guided import routes as guided_routes  # fork: guided knitting (FORK.md)
+from app.stash import routes as stash_routes  # fork: stash (FORK.md)
 from app.core import config, security, static
 from app.ai import service as ai_service
 
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(releases_router)
     app.include_router(stats_router)
     app.include_router(guided_routes.router)  # fork
+    app.include_router(stash_routes.router)  # fork: stash (FORK.md)
 
     app.on_event("startup")(ai_service._resume_ai_queue_on_startup)
     app.on_event("startup")(guided_routes.on_startup)  # fork

@@ -1040,6 +1040,7 @@ def start_project(recipe_id: str, body: dict = Body(default={}), current_user: d
                 "INSERT INTO inventory_log (id,item_id,change,reason,recipe_id,session_id,note,created_at) VALUES (?,?,?,?,?,?,?,?)",
                 (str(uuid.uuid4()), inv_id, -skeins_used, "project_start", recipe_id, session_id, f"Used for: {recipe_title}", now)
             )
+            from app import fork_hooks; fork_hooks.after_quantity_change(conn, inv_id, inv["quantity"], max(0, inv["quantity"] - skeins_used), "project_start", current_user["username"], session_id)  # fork: stash (FORK.md)
     _log_user_action(
         conn,
         current_user,
