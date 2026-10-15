@@ -74,14 +74,15 @@ default (Settings, Knitting upgrades), so the live library looks the same until 
 | `app/backend/app/guided/` | The app side: settings (`fork_*` rows in `app_settings`), background builds that survive restarts, `/api/guided/...` |
 | `app/backend/app/fork_migrations.py` | The fork's own tables (`guide_jobs`, `guides`; version 2: `yarn_specs`, `stash_ledger`) and schema version; upstream's schema code is not edited |
 | `app/backend/app/stash/` | The stash in grams ([design](docs/guided-knitting/PHASE2-STASH.md)): ball details, gram history, ball-band reader, server-side picture fetch, `/api/stash/...` and `/api/fork/settings` |
-| `app/backend/app/fork_hooks.py` | `after_quantity_change`: upstream's ball count changes feed the gram history (inside the caller's transaction; never raises) |
+| `app/backend/app/fork_hooks.py` | `after_quantity_change`: upstream's ball count changes feed the gram history (inside the caller's transaction; never raises). Also the upstream fixes below |
 | `app/frontend/src/fork/` | The fork's own API calls, strings and screens (the Guided tab, the Knitting upgrades settings card; `stash/`: ball details, ball band photo, grams on the inventory cards, Bought more, Correct, history) |
 | `.github/workflows/backend-tests.yml` | Runs all backend tests on every push and pull request |
 
 Edits to upstream files, all marked `fork`:
 * `app/backend/app/main.py`: 5 lines (guided and stash routers, start-up);
 * `app/backend/app/inventory/service.py`: 3 lines, the stash hook in create, update and adjust;
-* `app/backend/app/recipes/repository.py`: 1 line, the stash hook after `start_project` deducts balls;
+* `app/backend/app/recipes/repository.py`: 5 lines, the stash hook after `start_project` deducts balls, and the
+  four upstream fixes below (`list_recipes`, `delete_recipe`, `delete_project_session`, `clear_sessions`);
 * `app/backend/requirements.txt`: `pypdf`;
 * `app/frontend/src/pages/RecipeViewer.jsx`: imports, the Guided tab and one branch;
 * `app/frontend/src/pages/SettingsPage.jsx`: imports, one menu entry and one line;
@@ -98,6 +99,24 @@ model chosen under Settings, Knitting upgrades (default Claude Haiku 5.5 through
 `utils/api.js` `addYarnColour` sent a form to an endpoint that only takes JSON, so "Add colour" on a yarn's page
 failed with 422 (live included). It now sends the name and price as JSON and uploads the picture to the colour's own
 picture endpoint. Marked `fork`. Worth reporting upstream with the other fixes.
+
+Import wizard drafts that were uploaded but not yet saved (or were left with "Stop for now") showed in the library
+as ordinary patterns, under their folder name. `list_recipes` now leaves out recipes whose `import_queue` row is
+`staged`; the wizard still finds them. One line marked `fork` calling `fork_hooks.HIDE_STAGED_IMPORTS_SQL`.
+Tests: `tests/test_fork_upstream_fixes.py`.
+
+Deleting a project session, "clear all session history" and deleting a pattern failed with 500 once a session had
+taken balls from the inventory, because `inventory_log` has foreign keys to the session and the recipe. Clearing
+the history or deleting the pattern also left the database locked, so every page failed until a restart. Before
+upstream deletes, `fork_hooks.before_sessions_delete` / `before_recipe_delete` clear those links in the same
+transaction. The stock history rows stay (the balls were used and the count still shows it; the note names the
+pattern). Deleting a pattern also removes the fork's guide for it, which would otherwise show on a new pattern with
+the same title. Three lines marked `fork`. Tests: `tests/test_fork_upstream_fixes.py`.
+
+Deleting a yarn or a colour that is in the stash or was used in a project failed in the same way (foreign key,
+no try/finally, database locked). `app/yarns/service.py` `delete_yarn` and `delete_yarn_colour` now call
+`fork_hooks.refuse_yarn_delete_if_used` first (one marked line each), which refuses with a plain message: "This yarn
+can't be deleted because it is in your stash or was used in a project."
 
 ## Package updates
 
