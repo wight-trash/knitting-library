@@ -39,7 +39,9 @@ CATALOGUE_TTL = 3600
 CATALOGUE_RETRY = 120          # after a failed fetch, wait this long before trying again
 MAX_CATALOGUE_BYTES = 16 * 1024 * 1024
 
-_cache: dict = {"at": 0.0, "failed_at": 0.0, "models": None}
+# None, not 0: time.monotonic() counts from boot, so on a machine up for under two minutes "now - 0" would look
+# like a failure moments ago and the list would never be fetched (seen on a fresh CI runner).
+_cache: dict = {"at": None, "failed_at": None, "models": None}
 _lock = threading.Lock()
 _warned: set[tuple] = set()
 
@@ -116,8 +118,8 @@ def catalogue(refresh: bool = False) -> dict[str, dict] | None:
     """OpenRouter's models by id, cached for an hour. None if it has never been fetched successfully."""
     now = time.monotonic()
     with _lock:
-        fresh = _cache["models"] is not None and now - _cache["at"] < CATALOGUE_TTL
-        backing_off = now - _cache["failed_at"] < CATALOGUE_RETRY
+        fresh = _cache["models"] is not None and _cache["at"] is not None and now - _cache["at"] < CATALOGUE_TTL
+        backing_off = _cache["failed_at"] is not None and now - _cache["failed_at"] < CATALOGUE_RETRY
         if (fresh and not refresh) or (backing_off and not refresh):
             return _cache["models"]
     try:
@@ -128,7 +130,7 @@ def catalogue(refresh: bool = False) -> dict[str, dict] | None:
             _cache["failed_at"] = now
             return _cache["models"]
     with _lock:
-        _cache.update(at=now, failed_at=0.0, models=models)
+        _cache.update(at=now, failed_at=None, models=models)
     return models
 
 

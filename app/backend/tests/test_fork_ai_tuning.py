@@ -88,12 +88,12 @@ class TuningBase(unittest.TestCase):
     def setUp(self):
         from app.ai_tuning import service
         self.service = service
-        service._cache.update(at=0.0, failed_at=0.0, models=None)
+        service._cache.update(at=None, failed_at=None, models=None)
         service._warned.clear()
         p = mock.patch.object(service, "_fetch_catalogue", side_effect=lambda: copy.deepcopy(CATALOGUE))
         self.fetch = p.start()
         self.addCleanup(p.stop)
-        self.addCleanup(service._cache.update, at=0.0, failed_at=0.0, models=None)
+        self.addCleanup(service._cache.update, at=None, failed_at=None, models=None)
         self._ai_page(OPENROUTER, "anthropic/claude-haiku-5.5")
         self.service.set_settings(dict(self.service.DEFAULTS))
 
@@ -139,6 +139,12 @@ class EffortRules(TuningBase):
         self.assertIsNone(self.service.effective_effort("guide", OPENROUTER, "anthropic/claude-haiku-5.5"))
         self.service.effective_effort("guide", OPENROUTER, "anthropic/claude-haiku-5.5")
         self.assertEqual(self.fetch.call_count, 1)  # not refetched on every request after a failure
+
+    def test_works_on_a_machine_that_has_just_started(self):
+        # time.monotonic() counts from boot; CI runners are often up for under two minutes.
+        with mock.patch.object(self.service.time, "monotonic", return_value=5.0):
+            self.assertEqual(self.service.effective_effort("guide", OPENROUTER, "anthropic/claude-haiku-5.5"), "high")
+        self.assertEqual(self.fetch.call_count, 1)
 
     def test_model_facts(self):
         info = self.service.model_info("anthropic/claude-haiku-5.5")
