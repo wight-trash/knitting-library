@@ -36,6 +36,13 @@ services:
       KNITTING_DATA_DIR: /data
       KNITTING_LOG_DIR: /logs
       KNITTING_STATIC_DIR: /app/frontend/build
+      # Signing in with Keycloak (FORK.md), with its own client. Leave OIDC_ISSUER empty for password sign-in.
+      OIDC_ISSUER: "${OIDC_ISSUER:-}"                  # https://auth.wighttrash.uk/realms/wighttrash
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-knitting-dev}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_PUBLIC_URL: "${DEV_PUBLIC_URL:-https://knit-dev.wighttrash.uk}"
+      OIDC_BUTTON_LABEL: "Sign in with Wight Trash"
+      OIDC_PASSWORD_LOGIN_USERS: "importer"
     volumes:
       - /mnt/tank/configs/knitting-library-dev/data:/data
       - /mnt/tank/configs/knitting-library-dev/logs:/logs

@@ -144,3 +144,16 @@ export function getForkSettings() {
 export function saveForkSettings(values) {
   return request('/fork/settings', { method: 'PUT', body: values });
 }
+
+// Signing in with Keycloak (FORK.md "Signing in with Keycloak")
+export function getOidcConfig(options) {
+  return request('/auth/oidc/config', options);
+}
+
+export function getOidcLinks(options) {
+  return request('/auth/oidc/links', options);
+}
+
+export function unlinkOidc(username) {
+  return request(`/auth/oidc/links/${encodeURIComponent(username)}`, { method: 'DELETE' });
+}

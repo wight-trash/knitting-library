@@ -38,6 +38,14 @@ services:
       KNITTING_DATA_DIR: /data
       KNITTING_LOG_DIR: /logs
       KNITTING_STATIC_DIR: /app/frontend/build
+      # Signing in with Keycloak (FORK.md). Leave OIDC_ISSUER empty for password sign-in as before.
+      # Put OIDC_CLIENT_SECRET in the .env file.
+      OIDC_ISSUER: "${OIDC_ISSUER:-}"                  # https://auth.wighttrash.uk/realms/wighttrash
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-knitting}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_PUBLIC_URL: "https://knit.wighttrash.uk"    # the redirect URI is this plus /api/auth/oidc/callback
+      OIDC_BUTTON_LABEL: "Sign in with Wight Trash"
+      OIDC_PASSWORD_LOGIN_USERS: "importer"            # service accounts that may still use a password
     volumes:
       - /mnt/tank/configs/knitting-library/data:/data
       - /mnt/tank/configs/knitting-library/logs:/logs

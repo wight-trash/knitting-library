@@ -1,7 +1,8 @@
 """Database tables owned by this fork (wight-trash/knitting-library), kept apart from upstream's schema code.
 
 Version 1: guided knitting (guide_jobs, guides). Version 2: the stash in grams (yarn_specs, stash_ledger), see
-docs/guided-knitting/PHASE2-STASH.md.
+docs/guided-knitting/PHASE2-STASH.md. Version 3: signing in with Keycloak (oidc_identities, oidc_pending), see
+FORK.md "Signing in with Keycloak".
 
 Upstream builds its schema in app/core/foundation.py. The fork never edits that: it adds its own tables here, with
 CREATE TABLE IF NOT EXISTS, and records its own schema version in app_settings (key `fork_schema_version`). No
@@ -14,7 +15,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 
-FORK_SCHEMA_VERSION = 2
+FORK_SCHEMA_VERSION = 3
 _done = False
 _lock = threading.Lock()
 
@@ -78,6 +79,24 @@ MIGRATIONS: dict[int, str] = {
         created_by         TEXT NOT NULL DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_stash_ledger_item ON stash_ledger (item_id, created_at);
+    """,
+    3: """
+    CREATE TABLE IF NOT EXISTS oidc_identities (
+        user_id     TEXT PRIMARY KEY,                 -- upstream users.id, no foreign key
+        issuer      TEXT NOT NULL,
+        subject     TEXT NOT NULL,                    -- the provider's stable id for the person ("sub")
+        username    TEXT NOT NULL DEFAULT '',         -- provider username when linked, for the admin's eye only
+        linked_at   TEXT NOT NULL,
+        last_login  TEXT,
+        UNIQUE (issuer, subject)
+    );
+
+    CREATE TABLE IF NOT EXISTS oidc_pending (          -- sign-ins started but not finished; minutes long
+        state         TEXT PRIMARY KEY,
+        nonce         TEXT NOT NULL,
+        code_verifier TEXT NOT NULL,
+        created_at    TEXT NOT NULL
+    );
     """,
 }
 

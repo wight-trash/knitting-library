@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AppProvider, useApp } from './utils/AppContext';
-import LoginPage from './pages/LoginPage';
+import OidcLogin from './fork/oidc/OidcLogin'; // fork: signing in with Keycloak, falls back to LoginPage (FORK.md)
 import SetupPage from './pages/SetupPage';
 import HomePage from './pages/HomePage';
 import Library from './pages/Library';
@@ -275,7 +275,7 @@ function AppInner() {
   );
 
   if (setupRequired) return <SetupPage />;
-  if (!user) return <LoginPage />;
+  if (!user) return <OidcLogin />; // fork
 
   if (showSettings) return (
     <div className="app">

@@ -95,6 +95,7 @@ def login(data: dict, request: Request):
     password = data.get("password", "")
     if not username or not password:
         raise HTTPException(status_code=400, detail="Username and password required")
+    from app.oidc import service as fork_oidc; fork_oidc.refuse_password_login(request, username)  # fork: Keycloak (FORK.md)
 
     conn = get_db()
     user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()

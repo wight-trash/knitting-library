@@ -32,6 +32,7 @@ import GuidedSettingsSection from '../fork/guided/GuidedSettingsSection'; // for
 import { ListChecks } from 'lucide-react'; // fork: guided versions icon
 import { ft } from '../fork/strings'; // fork
 import { releaseText } from '../fork/releases/releaseText'; // fork: no raw HTML in release notes
+import OidcAccountSection from '../fork/oidc/OidcAccountSection'; // fork: signing in with Keycloak
 
 export default function SettingsPage({ onBack }) {
   const { user, t } = useApp();
@@ -117,7 +118,7 @@ export default function SettingsPage({ onBack }) {
 
         <div className="settings-content">
           {activeSection === 'appearance' && <AppearanceSection />}
-          {activeSection === 'account'    && <AccountSection />}
+          {activeSection === 'account'    && <OidcAccountSection fallback={<AccountSection />} />} {/* fork */}
           {activeSection === 'data'       && <DataSection />}
           {user?.is_admin && activeSection === 'users'         && <UsersSection />}
           {user?.is_admin && activeSection === 'logs'          && <LogsSection />}

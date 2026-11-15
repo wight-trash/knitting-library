@@ -166,9 +166,50 @@ our fixes): "Add colour" fails with 422; deleting a pattern, a project session o
 locks the database once a session has taken balls from inventory; deleting a used yarn or colour fails the same
 way; unsaved import drafts show in the library. If upstream fixes one, remove our marked line on the next sync.
 
-## Later: signing in with Keycloak
+## Signing in with Keycloak
 
-Knitting Library has its own login behind Pangolin, so Mary signs in twice. Adding OIDC touches authentication and the login screen. It is a bigger patch and the first one likely to collide with upstream. Decide on it separately.
+Mary and Jeff sign in with their Wight Trash (Keycloak) accounts instead of a library password. It is off
+until `OIDC_ISSUER` and its three companions are set (see the compose files), so an image without them
+behaves like upstream. If only some are set, it stays off and logs a warning, rather than locking everybody out.
+
+| Where | What |
+| --- | --- |
+| `app/backend/app/oidc/` | `/api/auth/oidc/start`, `/callback`, `/config`, and for admins `/links` (list, unlink). Authorisation code flow with PKCE, state (also tied to the browser by a cookie) and nonce; the ID token's signature, issuer, audience and expiry are checked with PyJWT, which upstream already ships |
+| `app/backend/app/fork_migrations.py` | Version 3: `oidc_identities` (library user ↔ issuer + sub) and `oidc_pending` (sign-ins in progress, ten minutes) |
+| `app/frontend/src/fork/oidc/` | The sign-in screen (one button, plain messages for each failure), and Settings, My Account: a link to the Keycloak account page instead of the password and 2FA forms, plus the linked accounts for admins |
+
+Edits to upstream files, all marked `fork`: `app/backend/app/auth/service.py` (one line in `login()`),
+`app/backend/app/main.py` (import and router), `app/frontend/src/App.jsx` (the login screen),
+`app/frontend/src/pages/SettingsPage.jsx` (import and the Account section).
+
+**Who is who.** A successful sign-in opens an ordinary upstream session (the same `sessions` row and cookies as
+a password sign-in), so everything else in the app is unchanged. The person is found by their Keycloak id
+(`sub`). The first time, they are linked to the library account whose username matches their Keycloak
+`preferred_username` (ignoring case). That keeps their own data, which is stored by user id: notes on pattern
+pages, row counters, reading places, project history and feedback, and appearance settings. Later renames in
+Keycloak change nothing. Each library account can be linked to one Keycloak person only.
+
+**Nobody new gets in by accident.** A Keycloak person without a matching library account is turned away
+("There is no library account for you yet"). To add someone, an admin creates a library account with their
+Keycloak username in Settings, User Management (any password; it is never used). The service accounts in
+`OIDC_PASSWORD_LOGIN_USERS` can never be linked.
+
+**Password sign-in is off** for everyone except `OIDC_PASSWORD_LOGIN_USERS` (default `importer`, the DROPS
+importer's account, which signs in through `/api/auth/login`). Everyone else gets a 403. Admin password resets,
+forgot-password mails and upstream's admin 2FA page still exist but no longer matter. If Keycloak is down nobody
+can sign in. To get back in, empty `OIDC_ISSUER` and restart, which turns password sign-in back on.
+
+**Keycloak client** (realm `wighttrash`): client `knitting` (`knitting-dev` for the dev stack). OpenID Connect,
+Client authentication on (confidential), Standard flow only, PKCE method S256. Valid redirect URI
+`https://knit.wighttrash.uk/api/auth/oidc/callback`, post-logout and web origin `https://knit.wighttrash.uk`.
+The client secret goes in `.env` as `OIDC_CLIENT_SECRET`.
+
+**Not done (on purpose):** signing out of the library does not sign out of Keycloak, so "Sign in" afterwards
+is one click without a password. Nothing is created automatically from Keycloak (accounts, admin rights, email).
+
+**Tests:** `tests/test_fork_oidc.py` runs the whole flow against a fake provider with real signed tokens. It
+covers linking, renames, a second person claiming a linked username, unknown people, service accounts, wrong
+nonce/audience/issuer/expiry, state from another browser or used twice, cancel, password refusal and the switch.
 
 ## Status
 
