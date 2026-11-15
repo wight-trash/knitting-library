@@ -1,4 +1,5 @@
-# Monthly update pull requests for every package list, base image and workflow action, aimed at dev.
+# Monthly update pull requests for the importer's packages and base image and for workflow actions, aimed at dev.
+# The library's own packages follow upstream (FORK.md, "Package updates"), so they are not listed here.
 # Dependabot reads this file from the repository's default branch, which is jeff.
 #
 # Minor and patch updates are grouped into one pull request per folder; major versions come one by one.
@@ -16,34 +17,6 @@ updates:
 
   - package-ecosystem: docker
     directory: /importer
-    target-branch: dev
-    schedule: { interval: monthly }
-
-  - package-ecosystem: pip
-    directory: /app/backend
-    target-branch: dev
-    schedule: { interval: monthly }
-    groups:
-      backend-minor: { update-types: [minor, patch] }
-    ignore:
-      # bcrypt 5 refuses passwords over 72 bytes, so long existing passwords stop working.
-      # Needs a code change upstream first. See FORK.md.
-      - dependency-name: bcrypt
-        versions: [">=5"]
-
-  - package-ecosystem: npm
-    directory: /app/frontend
-    target-branch: dev
-    schedule: { interval: monthly }
-    groups:
-      frontend-minor: { update-types: [minor, patch] }
-    ignore:
-      # lucide-react 1.x dropped the GitHub icon the app uses in four upstream files.
-      - dependency-name: lucide-react
-        versions: [">=1"]
-
-  - package-ecosystem: docker
-    directory: /
     target-branch: dev
     schedule: { interval: monthly }
 

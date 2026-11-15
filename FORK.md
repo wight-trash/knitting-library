@@ -6,17 +6,16 @@ The `jeff` branch is upstream `main` plus a few things on top.
 
 | Where | What |
 | --- | --- |
-| First patch commit | Restores the `recipe_tags` insert in `_save_cats_tags`. Upstream creates tags but never links them to the recipe, so tags never show up. |
-| Second patch commit | Makes `[label](https://...)` links clickable in the text version viewer. Needed for video, lesson and yarn links. |
-| Third patch commit | Adds an "Import from DROPS" link to the sidebar and the Add menu. It goes to `/import/`, where the importer is served. Only `AppShell.jsx`, `AppShell.css` and `en.js` change. |
+| Link patch commit | Makes `[label](https://...)` links clickable in the old (`MarkdownView`) text version viewer. Upstream's new reader (1.0.0+) already does this for `gfm-v1` text versions. |
+| Nav patch commit | Adds an "Import from DROPS" link to the sidebar and the Add menu. It goes to `/import/`, where the importer is served. Only `AppShell.jsx`, `AppShell.css` and `en.js` change. |
 | `importer/` | The importer, a separate app that adds patterns from websites to Knitting Library. Own README. |
 | `deploy/docker-compose.yml` | The live stack: both apps on one private network. |
 | `deploy/docker-compose.dev.yml` | A test copy of the stack, built from `dev`. Runs beside the live one. |
 | `.github/workflows/` | Image builds for both apps, and a weekly upstream check. |
 | `sync-upstream.sh` | Keeps the `jeff` branch in step with upstream. |
 
-The three patch commits above touch upstream files, and so do the package updates (see "Package updates"
-below). Everything else is new files, so it cannot conflict with upstream.
+The two patch commits above touch upstream files, and so do the small `fork`-marked edits listed under
+"Guided knitting". Everything else is new files, so it cannot conflict with upstream.
 
 ## Branches
 
@@ -45,11 +44,11 @@ in the same way.
 
 Cheap, as far as the history shows. These are estimates, not promises.
 
-* The tag fix sits in a function that has not changed since the backend refactor. `repository.py` changed in only three commits since July.
 * The nav link patch adds an item to two menus in `AppShell.jsx`, a file upstream edits often. It is the most likely patch to need a hand fix.
 * The link patch touches the last lines of `MarkdownView`, a small part of a very large file.
+* The Guided tab is the edit most likely to conflict: upstream rewrote the view tabs in 1.0.0 (see "Guided tab and upstream's view tabs" below).
 * Upstream is slowing down: about 77 commits in June, about 10 in September.
-* Upstream only publishes `latest`, `beta` and `0.9.1` on Docker Hub, so a version tag cannot be relied on. The image built here is pinned to a commit.
+* Upstream tags releases in git (`1.0.0`, `1.0.1`) but publishes only `latest`, `beta` and `0.9.1` on Docker Hub, so a Docker version tag cannot be relied on. The image built here is pinned to a commit.
 
 Expect a few minutes a month. Most months nothing needs doing.
 
@@ -97,6 +96,14 @@ Edits to upstream files, all marked `fork`:
 Guides are built, and ball bands read, with the AI address and key from the app's own Settings, AI page, and the
 model chosen under Settings, Knitting upgrades (default Claude Haiku 5.5 through OpenRouter).
 
+### Guided tab and upstream's view tabs
+
+Since 1.0.0 upstream shows the view tabs only when AI is on or a text version exists
+(`recipeViewAvailability` in `utils/viewerResume.mjs`). It also moves any view it does not know back to
+Original, both on resume and in an effect. Four `fork` lines in `RecipeViewer.jsx` keep Guided working:
+the tab bar also shows when Guided is on, the Text tab is then hidden unless a text version is available,
+and `'guided'` is left alone on resume and by the effect while Guided is switched on.
+
 ### Upstream bug fixed in the fork
 
 `utils/api.js` `addYarnColour` sent a form to an endpoint that only takes JSON, so "Add colour" on a yarn's page
@@ -123,51 +130,53 @@ can't be deleted because it is in your stash or was used in a project."
 
 ## Package updates
 
-The fork runs newer packages than upstream. These commits change upstream files, so they are the ones most
-likely to conflict on a sync:
+The library uses **upstream's package versions**: `requirements.txt` plus `requirements.lock`, `package.json`
+plus `package-lock.json`, and upstream's digest-pinned base images (Python 3.12, Node 24). The only addition is
+`pypdf` in `requirements.txt`, for the guide builder. Between 14 October and the 1.0.1 sync the fork ran its
+own newer versions (Python 3.14, React 19, Vite 8). Those commits were dropped on 15 November 2026, because
+upstream had pinned and security-patched its own versions and every bump conflicted with them. Nothing in
+the fork needs the newer versions; the frontend builds and every test passes on upstream's.
 
-| What | Files | Notes |
-| --- | --- | --- |
-| Backend packages, Python 3.14, Node 24 | `app/backend/requirements.txt`, `Dockerfile` | bcrypt held at 4.3.0 (see below) |
-| Unused frontend packages removed | `app/frontend/package.json`, `package-lock.json` | `ajv`, `react-pdf`, `react-dropzone` were never imported |
-| Vite 8, React 19, lucide-react 0.577 | same | lucide-react 1.x dropped the GitHub icon the app uses |
+If a sync conflicts in `requirements.txt`, take upstream's file and add `pypdf` back at the end.
 
-The importer's packages are ours alone and never conflict.
+**bcrypt stays on 4.x** (upstream pins 4.2.1). bcrypt 5 raises an error for passwords longer than 72 bytes, in
+`checkpw` as well as `hashpw` (tested). Knitting Library treats the error as a wrong password, so anyone with a
+longer password, possibly the `importer` account, could no longer sign in. If upstream ever moves to 5, check
+that `_hash_password` and `_verify_password` cut the password to 72 bytes first.
 
-**If a sync conflicts in `package-lock.json`,** do not merge it by hand. Take upstream's `package.json`, put our
-version numbers back, then regenerate the lock file and continue:
-
-```
-cd app/frontend && npx npm@11 install --legacy-peer-deps && cd ../..
-git add app/frontend/package.json app/frontend/package-lock.json && git rebase --continue
-```
-
-Once upstream reaches the same versions, our commits become empty and drop out of the rebase.
-
-**bcrypt stays on 4.x.** bcrypt 5 raises an error for passwords longer than 72 bytes, in `checkpw` as well as
-`hashpw` (tested). Knitting Library treats the error as a wrong password, so anyone with a longer password,
-possibly the `importer` account, could no longer sign in. Moving to 5 needs `_hash_password` and
-`_verify_password` to cut the password to 72 bytes first, as bcrypt 4 did silently. That belongs upstream.
+The importer's packages are ours alone (Python 3.14) and never conflict.
 
 **Checks before anything is published.** Both image workflows build the image, test it, and only then push:
 the library image runs `.github/scripts/kl-smoke.py` (sign-in, PDF upload, page pictures), the importer image
 runs `python -m app.selfcheck` (Chromium prints a PDF, poppler reads it).
 
-**Monthly updates.** `.github/dependabot.yml` asks for update pull requests against `dev` for every package list,
-base image and workflow action, once a month. Each pull request runs the same tests and image checks as a push,
+**Monthly updates.** `.github/dependabot.yml` asks for update pull requests against `dev` for the importer's
+packages and base image and for workflow actions, once a month. The library's own packages are left to
+upstream. Each pull request runs the same tests and image checks as a push,
 without publishing anything, so the result shows on the pull request. Merge the green ones into `dev`, try the
 dev stack, then promote. Dependabot alerts (emails about known vulnerabilities) are on. Dependabot security
 updates are off on purpose: they open pull requests against the default branch, `jeff`, which would skip `dev`.
 
 ## Tell upstream
 
-The tag bug is worth reporting upstream. If upstream applies a fix, the first patch commit drops out by itself on the next rebase.
+Upstream fixed the tag bug in 1.0.1 (150862d, issue #21) with the same line as ours, so that patch was dropped.
+
+Still worth reporting, all present in upstream 1.0.1 (see "Upstream bug fixed in the fork" for the details and
+our fixes): "Add colour" fails with 422; deleting a pattern, a project session or the session history fails and
+locks the database once a session has taken balls from inventory; deleting a used yarn or colour fails the same
+way; unsaved import drafts show in the library. If upstream fixes one, remove our marked line on the next sync.
 
 ## Later: signing in with Keycloak
 
 Knitting Library has its own login behind Pangolin, so Mary signs in twice. Adding OIDC touches authentication and the login screen. It is a bigger patch and the first one likely to collide with upstream. Decide on it separately.
 
 ## Status
+
+15 November 2026: rebased onto upstream 1.0.1. The tag fix and the four package-update commits were
+dropped, and the Guided tab was fitted to upstream's new view tabs. Backend tests: 256 passed. The one
+failure, `test_chatgpt_integration`, fails the same way on plain upstream 1.0.1 under Python 3.14, so it is
+not from the fork. The frontend builds, and its unit tests and locale check pass.
+
 
 `sync-upstream.sh` was tested in three cases against local copies: no change, clean rebase, conflict. Both image builds have run on `jeff`.
 

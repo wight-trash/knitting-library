@@ -26,7 +26,7 @@ name: knitting
 
 services:
   knitting-library:
-    # Built from this fork. The plain upstream image (zeetlex/knitting-library) does not save tags.
+    # Built from this fork: upstream plus Guided knitting, the stash in grams and the fixes in FORK.md.
     image: ghcr.io/wight-trash/knitting-library:jeff
     container_name: knitting-library
     restart: unless-stopped
