@@ -18,6 +18,7 @@ from app.yarns.routes import router as yarns_router
 from app.guided import routes as guided_routes  # fork: guided knitting (FORK.md)
 from app.stash import routes as stash_routes  # fork: stash (FORK.md)
 from app.oidc import routes as oidc_routes  # fork: signing in with Keycloak (FORK.md)
+from app.ai_tuning import routes as ai_tuning_routes  # fork: AI tuning (FORK.md)
 from app.core import config, security, static
 from app.ai import service as ai_service
 
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(guided_routes.router)  # fork
     app.include_router(stash_routes.router)  # fork: stash (FORK.md)
     app.include_router(oidc_routes.router)  # fork: Keycloak (FORK.md)
+    app.include_router(ai_tuning_routes.router)  # fork: AI tuning (FORK.md)
 
     app.on_event("startup")(ai_service._resume_ai_queue_on_startup)
     app.on_event("startup")(guided_routes.on_startup)  # fork

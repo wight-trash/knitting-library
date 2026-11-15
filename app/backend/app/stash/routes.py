@@ -79,7 +79,7 @@ async def fetch_image(url: str = "", current_user: dict = Depends(get_current_us
 def get_fork_settings(current_user: dict = Depends(require_admin)) -> dict:
     ensure_fork_schema()
     return {"stash_enabled": settings.stash_enabled(), "guides_enabled": guided_settings.guides_enabled(),
-            "guide_model": guided_settings.get_all()["fork_guide_model"]}
+            "guide_model": guided_settings.ai_connection()["model"]}
 
 
 def put_fork_settings(data: dict = Body(...), current_user: dict = Depends(require_admin)) -> dict:
@@ -87,10 +87,7 @@ def put_fork_settings(data: dict = Body(...), current_user: dict = Depends(requi
     if "guides_enabled" in data:
         values["fork_feature_guides"] = "true" if data["guides_enabled"] else "false"
     if "guide_model" in data:
-        model = str(data["guide_model"] or "").strip()
-        if not model or len(model) > 120:
-            raise HTTPException(status_code=400, detail="Give a model name, e.g. anthropic/claude-haiku-5.5")
-        values["fork_guide_model"] = model
+        raise HTTPException(status_code=400, detail="The model is chosen in Settings, AI / Text recognition.")
     if values:
         guided_settings.set_values(values)
     if "stash_enabled" in data:

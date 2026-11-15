@@ -48,6 +48,9 @@ function FinishedNotice({ job, hasGuide, canRetry, starting, onRetry, onHide, er
       <div className="gp-notice-body">
         <h2 className="gp-h2">{failed ? ft('failedTitle') : ft('cancelledTitle')}</h2>
         <p>{failed ? (job.error || ft('failedDefault')) : ft('cancelledText')}</p>
+        {failed && job.error_detail && (
+          <details className="gp-muted"><summary>{ft('failedDetailLabel')}</summary><code style={{ wordBreak: 'break-word' }}>{job.error_detail}</code></details>
+        )}
         {hasGuide && <p className="gp-muted">{ft('keptEarlier')}</p>}
         <div className="gp-actions">
           {canRetry && (

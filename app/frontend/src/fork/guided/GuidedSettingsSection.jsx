@@ -28,14 +28,13 @@ function Switch({ on, onToggle, disabled, label }) {
 export default function GuidedSettingsSection() {
   const [settings, setSettings] = useState(null);
   const [configured, setConfigured] = useState(true);
-  const [model, setModel] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getForkSettings()
-      .then((s) => { setSettings(s); setModel(s.guide_model); })
+      .then((s) => setSettings(s))
       .catch((e) => setError(e.message));
     getGuidedStatus().then((s) => setConfigured(Boolean(s.configured))).catch(() => {});
   }, []);
@@ -44,7 +43,7 @@ export default function GuidedSettingsSection() {
     setSaving(true); setMessage(''); setError('');
     try {
       const s = await saveForkSettings(values);
-      setSettings(s); setModel(s.guide_model);
+      setSettings(s);
       forgetGuidedStatus();
       forgetStashStatus();
       setMessage(ft('settingsSaved'));
@@ -91,20 +90,9 @@ export default function GuidedSettingsSection() {
           {!configured && <p className="settings-row-sub" role="note">{ft('settingsNeedsAI')}</p>}
           <div className="ai-settings-card">
             <div className="settings-row-info">
-              <p className="settings-row-label">{ft('settingsModel')}</p>
-              <p className="settings-row-sub">{ft('settingsModelSub')}</p>
+              <p className="settings-row-label">{ft('settingsModelNow', { model: settings.guide_model })}</p>
+              <p className="settings-row-sub">{ft('settingsModelWhere')}</p>
             </div>
-            <input
-              className="form-input"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              aria-label={ft('settingsModel')}
-              spellCheck={false}
-              autoCapitalize="off"
-            />
-            <button className="btn-primary" onClick={() => save({ guide_model: model })} disabled={saving || !model.trim() || model === settings.guide_model}>
-              {ft('settingsSave')}
-            </button>
           </div>
           {message && <p className="settings-row-sub" role="status">{message}</p>}
         </div>

@@ -33,6 +33,7 @@ import { ListChecks } from 'lucide-react'; // fork: guided versions icon
 import { ft } from '../fork/strings'; // fork
 import { releaseText } from '../fork/releases/releaseText'; // fork: no raw HTML in release notes
 import OidcAccountSection from '../fork/oidc/OidcAccountSection'; // fork: signing in with Keycloak
+import AiTuningSection from '../fork/ai/AiTuningSection'; // fork: reasoning effort and model guidance
 
 export default function SettingsPage({ onBack }) {
   const { user, t } = useApp();
@@ -1449,6 +1450,7 @@ function AISection() {
           </div>
           <p className="settings-row-sub ai-inline-help">{t('aiGenerationSettingsHint')}</p>
         </div>}
+        {cfg.ai_provider !== 'chatgpt_subscription' && <AiTuningSection cfg={cfg} />} {/* fork */}
 
         <div className="ai-settings-card">
           <div className="ai-card-heading ai-card-heading-row">

@@ -1,0 +1,35 @@
+/* AI tuning card (fork, FORK.md "AI tuning"). Uses the AI page's own card and form styles; only the extras are here. */
+.fork-tune-heading {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fork-tune-facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fork-tune-fact {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+}
+.fork-tune-fact.no { color: var(--danger, #b3261e); border-color: currentColor; }
+.fork-tune-warn { color: var(--danger, #b3261e); }
+.fork-tune-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.fork-tune-prompt summary { cursor: pointer; font-size: 14px; padding: 4px 0; }
+.fork-tune-prompt pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}

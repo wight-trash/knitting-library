@@ -8,6 +8,7 @@ from app.fork_migrations import ensure_fork_schema
 from app.guided import jobs, settings
 
 router = APIRouter()
+MODEL_IS_ON_AI_PAGE = "The model is chosen in Settings, AI / Text recognition."
 
 
 def _guarded(fn, *args):
@@ -25,8 +26,7 @@ def status(current_user: dict = Depends(get_current_user)) -> dict:
 
 
 def get_settings(current_user: dict = Depends(require_admin)) -> dict:
-    s = settings.get_all()
-    return {"enabled": settings.guides_enabled(), "model": s["fork_guide_model"]}
+    return {"enabled": settings.guides_enabled(), "model": settings.ai_connection()["model"]}
 
 
 def put_settings(data: dict = Body(...), current_user: dict = Depends(require_admin)) -> dict:
@@ -34,17 +34,15 @@ def put_settings(data: dict = Body(...), current_user: dict = Depends(require_ad
     if "enabled" in data:
         values["fork_feature_guides"] = "true" if data["enabled"] else "false"
     if "model" in data:
-        model = str(data["model"] or "").strip()
-        if not model or len(model) > 120:
-            raise HTTPException(status_code=400, detail="Give a model name, e.g. anthropic/claude-haiku-5.5")
-        values["fork_guide_model"] = model
+        raise HTTPException(status_code=400, detail=MODEL_IS_ON_AI_PAGE)
     settings.set_values(values)
     return get_settings(current_user)
 
 
 def recipe_guide(recipe_id: str, current_user: dict = Depends(get_current_user)) -> dict:
     """The guide for a pattern (if built) and its latest build, with progress. The page polls this."""
-    return {"enabled": settings.guides_enabled(), "guide": jobs.get_guide(recipe_id), "job": jobs.latest_job(recipe_id)}
+    return {"enabled": settings.guides_enabled(), "guide": jobs.get_guide(recipe_id),
+            "job": jobs.latest_job(recipe_id, include_detail=bool(current_user.get("is_admin")))}
 
 
 def start_build(recipe_id: str, current_user: dict = Depends(get_current_user)) -> dict:

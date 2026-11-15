@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.core.foundation import DATA_DIR, get_db
 from app.fork_migrations import ensure_fork_schema
+from app.ai_tuning import service as ai_tuning  # fork: per-feature reasoning effort
 from app.guide_builder import ai
 from app.guide_builder.pipeline import BuildCancelled, build_guide
 from app.guided import settings
@@ -44,7 +45,7 @@ def recipe_pdf(recipe_id: str):
 
 
 # ---------------------------------------------------------------- views
-def job_view(row) -> dict | None:
+def job_view(row, include_detail: bool = False) -> dict | None:
     if row is None:
         return None
     return {
@@ -53,16 +54,17 @@ def job_view(row) -> dict | None:
         "cancel_requested": bool(row["cancel_requested"]),
         "last_event": json.loads(row["last_event"] or "{}"), "events": json.loads(row["events"] or "[]"),
         "error": row["error"], "server_time": _now(),
+        "error_detail": (row["error_detail"] if "error_detail" in row.keys() else "") if include_detail else "",
     }
 
 
-def latest_job(recipe_id: str) -> dict | None:
+def latest_job(recipe_id: str, include_detail: bool = False) -> dict | None:
     ensure_fork_schema()
     conn = get_db()
     try:
         row = conn.execute("SELECT * FROM guide_jobs WHERE recipe_id=? ORDER BY created_at DESC LIMIT 1",
                            (recipe_id,)).fetchone()
-        return job_view(row)
+        return job_view(row, include_detail)
     finally:
         conn.close()
 
@@ -162,13 +164,29 @@ def _update(job_id: str, **fields) -> None:
         conn.close()
 
 
+def _detail(exc: BaseException) -> str:
+    """The technical reason, for admins: the error and the last place in the app's own code it passed through.
+    Never the key: AI errors are written without it, and nothing else here holds it."""
+    import traceback
+    from pathlib import Path
+    package = str(Path(__file__).resolve().parents[1]) + "/"   # .../app/
+    where = ""
+    for frame in reversed(traceback.extract_tb(exc.__traceback__)):
+        path = str(Path(frame.filename).resolve())
+        if path.startswith(package):
+            where = f" (at {path[len(package):]}:{frame.lineno} in {frame.name})"
+            break
+    return f"{type(exc).__name__}: {str(exc)[:400]}{where}"[:600]
+
+
 def _run(job_id: str) -> None:
     try:
         _run_job(job_id)
-    except Exception:  # never let a build take the worker down
+    except Exception as exc:  # never let a build take the worker down
         log.exception("guide build %s crashed", job_id)
         _update(job_id, status="failed", finished_at=_now(),
-                error="Something went wrong while making the guided version. Try again.")
+                error="Something went wrong while making the guided version. Try again.",
+                error_detail=_detail(exc))
     finally:
         with _active_lock:
             _active.discard(job_id)
@@ -185,8 +203,11 @@ def _run_job(job_id: str) -> None:
     recipe_id = row["recipe_id"]
     _update(job_id, status="running", started_at=_now(), events="[]")
     cfg = settings.ai_connection()
-    client = ai.Client(ai.AIConfig(api_key=cfg["api_key"], base_url=cfg["base_url"] or ai.DEFAULT_BASE_URL,
-                                   model=cfg["model"]))
+    base_url = cfg["base_url"] or ai.DEFAULT_BASE_URL
+    effort = ai_tuning.effective_effort("guide", base_url, cfg["model"])
+    log.info("guide build %s: model %s, effort %s", job_id, cfg["model"], effort or "model default")
+    client = ai.Client(ai.AIConfig(api_key=cfg["api_key"], base_url=base_url, model=cfg["model"],
+                                   reasoning_effort=effort, timeout=cfg["timeout"]))
     events: list[dict] = []
     lock = threading.Lock()
     cancel_cache = {"at": 0.0, "value": False}
@@ -217,7 +238,8 @@ def _run_job(job_id: str) -> None:
     except ai.AIError as exc:
         log.warning("guide build %s failed: %s", job_id, exc)
         _update(job_id, status="failed", finished_at=_now(),
-                error="The AI service could not read this pattern this time. Try again in a few minutes.")
+                error="The AI service could not read this pattern this time. Try again in a few minutes.",
+                error_detail=_detail(exc))
         return
     finally:
         client.close()

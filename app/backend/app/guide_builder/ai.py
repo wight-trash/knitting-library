@@ -76,6 +76,63 @@ def _shape(parsed: dict, schema: dict) -> tuple[dict, list[str]]:
     return parsed, missing
 
 
+_JSON_TYPES = {
+    "object": lambda v: isinstance(v, dict),
+    "array": lambda v: isinstance(v, list),
+    "string": lambda v: isinstance(v, str),
+    "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+    "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+    "boolean": lambda v: isinstance(v, bool),
+    "null": lambda v: v is None,
+}
+
+
+def schema_problems(value, schema: dict, root: dict | None = None, path: str = "$", limit: int = 8) -> list[str]:
+    """Where `value` does not match `schema`, for the subset of JSON Schema the answer schemas use (type, properties,
+    required, items, enum, anyOf, $ref to #/$defs). Extra properties are allowed: they are harmless, and the code
+    reads only what it knows. Strict providers enforce the schema themselves; this catches the ones that do not, and
+    the plain JSON fallback, before a wrong shape reaches the builder and crashes it."""
+    root = root if root is not None else schema
+    out: list[str] = []
+
+    def walk(v, sch, where):
+        if len(out) >= limit or not isinstance(sch, dict):
+            return
+        ref = sch.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/"):
+            target = root
+            for part in ref[2:].split("/"):
+                target = target.get(part, {}) if isinstance(target, dict) else {}
+            walk(v, target, where)
+            return
+        if "anyOf" in sch:
+            if not any(not schema_problems(v, alt, root, where, 1) for alt in sch["anyOf"]):
+                out.append(f"{where}: matches none of the allowed forms")
+            return
+        types = sch.get("type")
+        if types is not None:
+            allowed = types if isinstance(types, list) else [types]
+            if not any(_JSON_TYPES.get(t, lambda _v: True)(v) for t in allowed):
+                out.append(f"{where}: should be {' or '.join(allowed)}, got {type(v).__name__}")
+                return
+        if "enum" in sch and v not in sch["enum"]:
+            out.append(f"{where}: {str(v)[:40]!r} is not one of the allowed values")
+            return
+        if isinstance(v, dict):
+            for key in sch.get("required") or []:
+                if key not in v:
+                    out.append(f"{where}.{key}: missing")
+            for key, sub in (sch.get("properties") or {}).items():
+                if key in v:
+                    walk(v[key], sub, f"{where}.{key}")
+        elif isinstance(v, list) and isinstance(sch.get("items"), dict):
+            for i, item in enumerate(v):
+                walk(item, sch["items"], f"{where}[{i}]")
+
+    walk(value, schema, path)
+    return out[:limit]
+
+
 def _strip_fences(s: str) -> str:
     s = s.strip()
     s = re.sub(r"^```(?:json)?\s*", "", s)
@@ -131,12 +188,19 @@ class Client:
                 continue
             data, missing = _shape(ans.data, schema)
             ans.data = data
-            if not missing or attempt + 1 >= attempts:
+            wrong = [] if missing else schema_problems(data, schema)
+            if not missing and not wrong:
+                return ans
+            if attempt + 1 >= attempts:
                 if missing:
                     raise AIError("the answer lacked required fields: " + ", ".join(missing[:6]))
-                return ans
-            note = ("\n\nYour previous answer was missing these fields: " + ", ".join(missing[:10]) +
-                    ". Reply with the data as one JSON object with every field, not the schema.")
+                raise AIError("the answer did not match the schema: " + "; ".join(wrong[:4]))
+            if missing:
+                note = ("\n\nYour previous answer was missing these fields: " + ", ".join(missing[:10]) +
+                        ". Reply with the data as one JSON object with every field, not the schema.")
+            else:
+                note = ("\n\nYour previous answer did not match the schema: " + "; ".join(wrong) +
+                        ". Reply again with one JSON object that matches the schema exactly.")
         raise AIError("no usable answer")
 
     def _json_once(self, system: str, content: list[dict], schema: dict, name: str, *, max_tokens: int | None,

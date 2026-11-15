@@ -123,14 +123,15 @@ class StashApiTests(unittest.TestCase):
         self.assertEqual([e["reason"] for e in v["ledger"]], ["opening"])
 
     def test_fork_settings_and_guided_settings_agree(self):
-        r = self.client.put("/api/fork/settings", json={"guides_enabled": True, "guide_model": "pretend/model-1"}, headers=self.h)
-        self.assertEqual(r.json(), {"stash_enabled": True, "guides_enabled": True, "guide_model": "pretend/model-1"})
+        r = self.client.put("/api/fork/settings", json={"guides_enabled": True}, headers=self.h)
+        model = r.json()["guide_model"]  # the AI page's model, shown read-only (FORK.md "AI tuning")
+        self.assertEqual(r.json(), {"stash_enabled": True, "guides_enabled": True, "guide_model": model})
         g = self.client.get("/api/guided/settings", headers=self.h).json()
-        self.assertEqual(g, {"enabled": True, "model": "pretend/model-1"})
-        self.client.put("/api/guided/settings", json={"enabled": False, "model": "anthropic/claude-haiku-5.5"}, headers=self.h)
+        self.assertEqual(g, {"enabled": True, "model": model})
+        self.client.put("/api/guided/settings", json={"enabled": False}, headers=self.h)
         r = self.client.get("/api/fork/settings", headers=self.h).json()
-        self.assertEqual(r, {"stash_enabled": True, "guides_enabled": False, "guide_model": "anthropic/claude-haiku-5.5"})
-        self.assertEqual(self.client.put("/api/fork/settings", json={"guide_model": ""}, headers=self.h).status_code, 400)
+        self.assertEqual(r, {"stash_enabled": True, "guides_enabled": False, "guide_model": model})
+        self.assertEqual(self.client.put("/api/fork/settings", json={"guide_model": "x/y"}, headers=self.h).status_code, 400)
         import main
         with TestClient(main.app) as anonymous:
             self.assertEqual(anonymous.get("/api/fork/settings").status_code, 401)

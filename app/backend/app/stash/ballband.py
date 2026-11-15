@@ -11,6 +11,7 @@ import logging
 import re
 
 from app.core.foundation import MAX_IMAGE_BYTES
+from app.ai_tuning import service as ai_tuning
 from app.guide_builder import ai, units
 from app.guided import settings as guided_settings
 from app.stash.ledger import StashError
@@ -267,8 +268,12 @@ def read_ball_band(data: bytes) -> dict:
     if not (cfg["base_url"] and cfg["api_key"]):
         raise StashError("The AI connection is not set up yet. An admin can add it in Settings, AI.")
     jpeg = prepare_photo(data)
-    client = ai.Client(ai.AIConfig(api_key=cfg["api_key"], base_url=cfg["base_url"] or ai.DEFAULT_BASE_URL,
-                                   model=cfg["model"], max_tokens=4000, timeout=90.0, retries=1))
+    base_url = cfg["base_url"] or ai.DEFAULT_BASE_URL
+    effort = ai_tuning.effective_effort("ballband", base_url, cfg["model"])
+    # Someone is waiting with the camera open, so this stays short; thinking needs room in max_tokens.
+    client = ai.Client(ai.AIConfig(api_key=cfg["api_key"], base_url=base_url, model=cfg["model"],
+                                   max_tokens=16000 if effort in ("high", "xhigh", "max") else 8000,
+                                   reasoning_effort=effort, timeout=min(cfg.get("timeout", 120.0), 180.0), retries=1))
     try:
         answer = client.json(SYSTEM, [ai.text_part("Read this ball band."), ai.image_part(jpeg)], SCHEMA, "ball_band")
     except ai.AIError as exc:

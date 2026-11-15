@@ -131,11 +131,13 @@ async def _call_ai_vision_page_scan(path: Path, page_no: int, page_count: int, l
     headers = {"Content-Type": "application/json"}
     if cfg.get("ai_api_key"):
         headers["Authorization"] = f"Bearer {cfg['ai_api_key']}"
+    from app.ai_tuning import service as fork_ai; fork_extras = await fork_ai.request_extras_async(cfg, "scan")  # fork: reasoning effort (FORK.md)
     async with httpx.AsyncClient(timeout=timeout) as client:
         res = await client.post(
             f"{base_url}/chat/completions",
             headers=headers,
             json={
+                **fork_extras,  # fork
                 "model": model,
                 "messages": messages,
                 "temperature": _ai_temperature(cfg, "ai_scan_temperature", 0.02),
@@ -167,11 +169,13 @@ async def _call_ai_page_cleanup(text: str, page_no: int, page_count: int, langua
     headers = {"Content-Type": "application/json"}
     if cfg.get("ai_api_key"):
         headers["Authorization"] = f"Bearer {cfg['ai_api_key']}"
+    from app.ai_tuning import service as fork_ai; fork_extras = await fork_ai.request_extras_async(cfg, "cleanup")  # fork: reasoning effort (FORK.md)
     async with httpx.AsyncClient(timeout=timeout) as client:
         res = await client.post(
             f"{base_url}/chat/completions",
             headers=headers,
             json={
+                **fork_extras,  # fork
                 "model": model,
                 "messages": messages,
                 "temperature": _ai_temperature(cfg, "ai_cleanup_temperature", 0.05),

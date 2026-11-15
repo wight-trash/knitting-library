@@ -2,7 +2,8 @@
 
 Version 1: guided knitting (guide_jobs, guides). Version 2: the stash in grams (yarn_specs, stash_ledger), see
 docs/guided-knitting/PHASE2-STASH.md. Version 3: signing in with Keycloak (oidc_identities, oidc_pending), see
-FORK.md "Signing in with Keycloak".
+FORK.md "Signing in with Keycloak". Version 4: guide_jobs.error_detail (the technical
+reason a build failed, shown to admins only).
 
 Upstream builds its schema in app/core/foundation.py. The fork never edits that: it adds its own tables here, with
 CREATE TABLE IF NOT EXISTS, and records its own schema version in app_settings (key `fork_schema_version`). No
@@ -15,7 +16,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 
-FORK_SCHEMA_VERSION = 3
+FORK_SCHEMA_VERSION = 4
 _done = False
 _lock = threading.Lock()
 
@@ -97,6 +98,9 @@ MIGRATIONS: dict[int, str] = {
         code_verifier TEXT NOT NULL,
         created_at    TEXT NOT NULL
     );
+    """,
+    4: """
+    ALTER TABLE guide_jobs ADD COLUMN error_detail TEXT NOT NULL DEFAULT '';
     """,
 }
 

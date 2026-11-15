@@ -153,3 +153,13 @@ export function getOidcConfig(options) {
 export function getOidcLinks(options) {
   return request('/auth/oidc/links', options);
 }
+
+// AI tuning (FORK.md "AI tuning"): per-feature reasoning effort and the selected model's facts
+export function getAiTuning(model, baseUrl, options) {
+  const q = new URLSearchParams({ model: model || '', base_url: baseUrl || '' });
+  return request(`/fork/ai/tuning?${q}`, { ...options, timeout: 30000 });
+}
+
+export function saveAiTuning(settings) {
+  return request('/fork/ai/tuning', { method: 'PUT', body: { settings } });
+}

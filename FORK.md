@@ -93,8 +93,8 @@ Edits to upstream files, all marked `fork`:
 * `app/frontend/src/pages/InventoryPage.jsx`: import, one prop, one callback, the stash line on each yarn card;
 * `app/frontend/src/pages/YarnViewer.jsx`: import and the Ball details section.
 
-Guides are built, and ball bands read, with the AI address and key from the app's own Settings, AI page, and the
-model chosen under Settings, Knitting upgrades (default Claude Haiku 5.5 through OpenRouter).
+Guides are built, and ball bands read, with the model, address, key and timeout from the app's own Settings, AI /
+Text recognition page, and the reasoning effort set there (see "AI tuning").
 
 ### Guided tab and upstream's view tabs
 
@@ -165,6 +165,45 @@ Still worth reporting, all present in upstream 1.0.1 (see "Upstream bug fixed in
 our fixes): "Add colour" fails with 422; deleting a pattern, a project session or the session history fails and
 locks the database once a session has taken balls from inventory; deleting a used yarn or colour fails the same
 way; unsaved import drafts show in the library. If upstream fixes one, remove our marked line on the next sync.
+
+## AI tuning
+
+Every AI feature uses the **one model chosen on Settings, AI / Text recognition**. Knitting upgrades used to have its
+own free-text model box; it is gone. The old `fork_guide_model` value is only used if the AI page has no model yet.
+
+Below Generation settings on that page, a fork card ("Reasoning and model guidance") shows, for the selected model:
+
+| What | From |
+| --- | --- |
+| Reasoning effort, **one drop-down per feature**: scanning pages, the cleanup step, guided versions, ball bands | The efforts OpenRouter lists for that model (`reasoning.supported_efforts`), with its default |
+| Whether it reads page images and gives strict JSON, its output limit and its price | OpenRouter's model list |
+| Temperature guidance: Claude 5.5 takes no temperature, so the scan and cleanup temperatures do nothing there | `supported_parameters`, `default_parameters` |
+| Limits: max output tokens against the model's limit and against thinking, the timeout against the guided effort, what max pages applies to | The page's own settings |
+| The guided-version and ball-band prompts, read-only | `guide_builder/prompts.py`, `stash/ballband.py` |
+
+Defaults: scanning and cleanup use the model's own default (as upstream did), guided versions **high**, ball bands
+**medium**. Until this change, guided versions and ball bands always asked for **low**, which on the Artificial
+Analysis index takes Haiku 5.5 from about 36 (max) to about 19.
+
+How it behaves:
+* The effort is sent only to OpenRouter (`reasoning.effort`), never to other OpenAI-compatible servers.
+* If a saved effort is not offered by the model (the model was changed), the nearest one it offers is used, never
+  "off" unless asked; if the model is unknown or OpenRouter's list cannot be fetched, nothing is sent and the model
+  uses its own default. Requests never carry a setting the model would refuse.
+* OpenRouter's list is fetched from `https://openrouter.ai/api/v1/models` only (never from the address typed on the
+  page), with httpx (Cloudflare refuses urllib), cached an hour, and retried no more than every two minutes after a
+  failure.
+* Guided builds use the page's timeout for each request (60 to 1800 seconds). Ball bands use it up to 180 seconds and
+  give the model more room to think when the effort is high.
+* Every JSON answer is checked against its full schema (`guide_builder/ai.py`, `schema_problems`), not only its
+  top-level keys. A wrong shape gets one more try with the problems listed, then fails cleanly. Before, a model
+  that ignored the schema (seen with Qwen 3.8) crashed the build with "Something went wrong".
+* A failed build keeps its technical reason in `guide_jobs.error_detail` (fork schema version 4). Admins see it under
+  the message on the Guided tab; others see only the plain message.
+
+Edits to upstream files, all marked `fork`: `app/backend/app/ai/jobs.py` (the scan and cleanup request bodies, two lines
+each), `app/backend/app/main.py` (import and router), `app/frontend/src/pages/SettingsPage.jsx` (import and the card).
+Tests: `tests/test_fork_ai_tuning.py`.
 
 ## Signing in with Keycloak
 

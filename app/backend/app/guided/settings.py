@@ -6,7 +6,7 @@ from app.core.foundation import get_db
 DEFAULT_GUIDE_MODEL = "anthropic/claude-haiku-5.5"
 KEYS = {
     "fork_feature_guides": "false",          # feature switch: the Guided tab and building guides
-    "fork_guide_model": DEFAULT_GUIDE_MODEL,  # model used to build guides (the app's AI settings give URL and key)
+    "fork_guide_model": DEFAULT_GUIDE_MODEL,  # old: only used while the AI page has no model (see ai_connection)
 }
 
 
@@ -39,12 +39,21 @@ def guides_enabled() -> bool:
 
 
 def ai_connection() -> dict:
-    """Base URL and key from the app's own AI settings page; the model from the fork's setting."""
+    """Base URL, key, model and timeout from the app's own AI settings page (Settings, AI / Text recognition).
+
+    The fork used to keep its own model (`fork_guide_model`). It is only used now if the AI page has no model yet,
+    so a library set up before this change keeps working until a model is chosen there."""
     conn = get_db()
     try:
-        rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN ('ai_base_url', 'ai_api_key')").fetchall()
+        rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN "
+                            "('ai_base_url', 'ai_api_key', 'ai_model', 'ai_timeout')").fetchall()
     finally:
         conn.close()
-    cfg = {r["key"]: r["value"] for r in rows}
+    cfg = {r["key"]: r["value"] or "" for r in rows}
+    try:
+        timeout = min(max(float(cfg.get("ai_timeout") or 600), 60.0), 1800.0)
+    except ValueError:
+        timeout = 600.0
+    model = cfg.get("ai_model", "").strip() or get_all()["fork_guide_model"] or DEFAULT_GUIDE_MODEL
     return {"base_url": (cfg.get("ai_base_url") or "").rstrip("/"), "api_key": cfg.get("ai_api_key") or "",
-            "model": get_all()["fork_guide_model"] or DEFAULT_GUIDE_MODEL}
+            "model": model, "timeout": timeout, "model_from_ai_page": bool(cfg.get("ai_model", "").strip())}
