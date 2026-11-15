@@ -256,8 +256,7 @@ const STRINGS = {
   // Signing in with Keycloak
   oidcSubtitle: 'Sign in to your library',
   oidcSigningIn: 'Going to the sign-in page…',
-  oidcError_no_account: 'There is no library account for you yet. Ask Jeff to add one with the same username as your sign-in.',
-  oidcError_already_linked: 'That library account is already linked to someone else. Ask Jeff to check the linked accounts.',
+  oidcError_no_account: 'This sign-in is not allowed into the library yet. Ask Jeff to add you.',
   oidcError_cancelled: 'Signing in was cancelled.',
   oidcError_expired: 'Signing in took too long, or was started in another window. Please try again.',
   oidcError_failed: 'Signing in did not work. Please try again.',
@@ -265,15 +264,14 @@ const STRINGS = {
   oidcAccountTitle: 'Signing in',
   oidcAccountText: 'You sign in with your Wight Trash account. Your password and two-step sign-in are changed there, not here.',
   oidcAccountLink: 'Open my sign-in account',
-  oidcLinksTitle: 'Linked accounts',
-  oidcLinksText: 'Library accounts are linked to a sign-in the first time someone signs in with the same username. To add a person, create a library account with their sign-in username (the password is never used).',
-  oidcLinksNone: 'No accounts are linked yet.',
-  oidcLinksLibrary: 'Library',
-  oidcLinksKeycloak: 'Sign-in',
+  oidcLinksTitle: 'Who can sign in',
+  oidcLinksText: 'Only these Keycloak users can sign in, each into the library account next to them. The list is OIDC_USERS in the stack\'s .env file (library_username=keycloak_user_id). Change it there and restart; anyone taken off loses their sessions at the restart. A refused sign-in is written to the auth log with its Keycloak user id.',
+  oidcLinksNone: 'Nobody is listed.',
+  oidcLinksLibrary: 'Library account',
+  oidcLinksKeycloak: 'Keycloak user id',
   oidcLinksLast: 'Last signed in',
-  oidcLinksNever: 'never',
-  oidcUnlink: 'Unlink',
-  oidcUnlinkConfirm: 'Unlink {name}? Their next sign-in links again by username.',
+  oidcLinksNever: 'not yet',
+  oidcLinksMissing: 'no such library account',
 };
 
 export function ft(key, vars) {

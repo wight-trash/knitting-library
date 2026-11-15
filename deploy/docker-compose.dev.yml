@@ -42,6 +42,7 @@ services:
       OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
       OIDC_PUBLIC_URL: "${DEV_PUBLIC_URL:-https://knit-dev.wighttrash.uk}"
       OIDC_BUTTON_LABEL: "Sign in with Wight Trash"
+      OIDC_USERS: "${OIDC_USERS:-}"                    # library_username=keycloak_user_id,... (FORK.md); only these get in
       OIDC_PASSWORD_LOGIN_USERS: "importer"
     volumes:
       - /mnt/tank/configs/knitting-library-dev/data:/data

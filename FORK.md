@@ -168,48 +168,87 @@ way; unsaved import drafts show in the library. If upstream fixes one, remove ou
 
 ## Signing in with Keycloak
 
-Mary and Jeff sign in with their Wight Trash (Keycloak) accounts instead of a library password. It is off
-until `OIDC_ISSUER` and its three companions are set (see the compose files), so an image without them
-behaves like upstream. If only some are set, it stays off and logs a warning, rather than locking everybody out.
+Mary and Jeff sign in with their Wight Trash (Keycloak) accounts instead of a library password. It stays off until
+`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_PUBLIC_URL` and `OIDC_USERS` are all set and valid (see
+the compose files). If any is missing or wrong, it stays off, logs why once, and upstream's password sign-in carries on.
+That way a typo can't lock everybody out.
 
 | Where | What |
 | --- | --- |
-| `app/backend/app/oidc/` | `/api/auth/oidc/start`, `/callback`, `/config`, and for admins `/links` (list, unlink). Authorisation code flow with PKCE, state (also tied to the browser by a cookie) and nonce; the ID token's signature, issuer, audience and expiry are checked with PyJWT, which upstream already ships |
-| `app/backend/app/fork_migrations.py` | Version 3: `oidc_identities` (library user ↔ issuer + sub) and `oidc_pending` (sign-ins in progress, ten minutes) |
-| `app/frontend/src/fork/oidc/` | The sign-in screen (one button, plain messages for each failure), and Settings, My Account: a link to the Keycloak account page instead of the password and 2FA forms, plus the linked accounts for admins |
+| `app/backend/app/oidc/` | `/api/auth/oidc/start`, `/callback`, `/config`, and for admins `/links`; the start-up check that ends removed people's sessions |
+| `app/backend/app/fork_migrations.py` | Version 3: `oidc_identities` (when each account last signed in, and with which Keycloak user) and `oidc_pending` (sign-ins in progress, ten minutes, at most 200) |
+| `app/frontend/src/fork/oidc/` | The sign-in screen (one button, a plain message for each failure). Settings, My Account: a link to the Keycloak account page instead of the password and 2FA forms, and for admins the list of who may sign in |
+| `app/backend/tests/test_fork_oidc.py` | One test per attack or mistake below |
 
 Edits to upstream files, all marked `fork`: `app/backend/app/auth/service.py` (one line in `login()`),
 `app/backend/app/main.py` (import and router), `app/frontend/src/App.jsx` (the login screen),
 `app/frontend/src/pages/SettingsPage.jsx` (import and the Account section).
 
-**Who is who.** A successful sign-in opens an ordinary upstream session (the same `sessions` row and cookies as
-a password sign-in), so everything else in the app is unchanged. The person is found by their Keycloak id
-(`sub`). The first time, they are linked to the library account whose username matches their Keycloak
-`preferred_username` (ignoring case). That keeps their own data, which is stored by user id: notes on pattern
-pages, row counters, reading places, project history and feedback, and appearance settings. Later renames in
-Keycloak change nothing. Each library account can be linked to one Keycloak person only.
+### Settings
 
-**Nobody new gets in by accident.** A Keycloak person without a matching library account is turned away
-("There is no library account for you yet"). To add someone, an admin creates a library account with their
-Keycloak username in Settings, User Management (any password; it is never used). The service accounts in
-`OIDC_PASSWORD_LOGIN_USERS` can never be linked.
+| Setting | |
+| --- | --- |
+| `OIDC_ISSUER` | `https://auth.wighttrash.uk/realms/wighttrash`. https only (plain http only for a loopback address, for local tests) |
+| `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | The Keycloak client (`knitting`, or `knitting-dev`). The secret goes in `.env` |
+| `OIDC_PUBLIC_URL` | The site's own https address, no path. The redirect URI is this plus `/api/auth/oidc/callback` |
+| `OIDC_USERS` | **Who may sign in, and into which library account**: `library_username=keycloak_user_id`, comma separated. The Keycloak user id is the user's **ID** in the Keycloak admin console (Users, the user, Details), and it is the ID token's `sub`. A refused sign-in is written to the auth log as `OIDC_NOT_ALLOWED sub=…`, so it can be copied from there too |
+| `OIDC_PASSWORD_LOGIN_USERS` | Service accounts that may still use a password. Default `importer`. Never an admin: an admin listed here is refused anyway |
+| `OIDC_SESSION_DAYS` | How long a library session lasts after a Keycloak sign-in. Default and maximum 30 (upstream's) |
+| `OIDC_BUTTON_LABEL` | The button text |
 
-**Password sign-in is off** for everyone except `OIDC_PASSWORD_LOGIN_USERS` (default `importer`, the DROPS
-importer's account, which signs in through `/api/auth/login`). Everyone else gets a 403. Admin password resets,
-forgot-password mails and upstream's admin 2FA page still exist but no longer matter. If Keycloak is down nobody
-can sign in. To get back in, empty `OIDC_ISSUER` and restart, which turns password sign-in back on.
+### Threat model and the defence for each
 
-**Keycloak client** (realm `wighttrash`): client `knitting` (`knitting-dev` for the dev stack). OpenID Connect,
-Client authentication on (confidential), Standard flow only, PKCE method S256. Valid redirect URI
-`https://knit.wighttrash.uk/api/auth/oidc/callback`, post-logout and web origin `https://knit.wighttrash.uk`.
-The client secret goes in `.env` as `OIDC_CLIENT_SECRET`.
+**Who someone is comes only from `OIDC_USERS`.** The `wighttrash` realm has Google, Microsoft and another OpenID
+provider on its login page. Keycloak's default first-broker-login flow creates a realm user for anyone who comes in
+through them, and that person may get to choose their username. So anything a person can influence (username,
+email, name) is never used to decide which library account they get. Only Keycloak's `sub`, which Keycloak assigns, is
+used, and only if `OIDC_USERS` lists it. Signing in creates nothing in the library. An earlier draft linked accounts
+by username; that would have let a stranger create a Keycloak user called `jeff` through Google and take the admin
+account.
 
-**Not done (on purpose):** signing out of the library does not sign out of Keycloak, so "Sign in" afterwards
-is one click without a password. Nothing is created automatically from Keycloak (accounts, admin rights, email).
+**Taking someone off.** Removing them from `OIDC_USERS` and restarting ends all their library sessions at start-up
+(logged as `OIDC_REVOKED`). The same happens if their account is given to a different Keycloak user. Disabling them in
+Keycloak alone stops new sign-ins but not a library session that is already open: those last `OIDC_SESSION_DAYS`.
 
-**Tests:** `tests/test_fork_oidc.py` runs the whole flow against a fake provider with real signed tokens. It
-covers linking, renames, a second person claiming a linked username, unknown people, service accounts, wrong
-nonce/audience/issuer/expiry, state from another browser or used twice, cancel, password refusal and the switch.
+**The sign-in itself** (authorisation code flow, confidential client):
+
+| Attack or failure | Defence |
+| --- | --- |
+| Stolen or intercepted code | PKCE S256 (64-character verifier, kept on the server); the client secret on the token request; the code is single-use at Keycloak |
+| Login CSRF: finishing your own sign-in in someone else's browser | `state` (256 bits) is kept on the server and tied to the browser by an HttpOnly, SameSite=Lax cookie; compared in constant time; single-use (deleted before any other work); ten-minute life |
+| Replayed ID token | `nonce` (256 bits) kept on the server and checked in constant time |
+| Mix-up with another issuer | RFC 9207: the `iss` in Keycloak's answer must be ours (Keycloak always sends it); the discovery document must name our issuer; the token's `iss` must match |
+| Token for another client | `aud` must be our client id; `azp` must be ours when present or when there are several audiences |
+| Forged or confused signature | Only asymmetric algorithms. The algorithm is taken from the **published key**, never from the token header (so no `none`, no HS256 signed with the client secret, no RS512 against an RS256 key). Encryption keys and symmetric keys in the key set are ignored. `kid` is required |
+| Expired token | `exp` and `iat` required, 30 seconds of clock leeway |
+| Rotated Keycloak keys | An unknown `kid` fetches the key set once more. Tokens only come from the token endpoint over TLS, so nobody outside can trigger fetches |
+| Tampered discovery or a downgrade | Every endpoint must be https; TLS certificates are checked; redirects are not followed; answers over 256 KB are refused; PKCE S256 must be offered |
+| Cloudflare refusing PyJWT's key fetch (403 to the `Python-urllib` user agent) | Keys are fetched with httpx, as everything else is |
+| Flooding `/start` to fill the database | At most 200 sign-ins in progress; the oldest go first; each is kept ten minutes |
+| Oversized parameters | `code` over 2048 or `state` over 128 characters are refused before any work |
+| Log injection through `error` or names | Everything written to a log line is reduced to safe characters |
+| Session cookies without Secure behind the proxy | TLS ends at Pangolin and `TRUSTED_PROXIES` is empty, so upstream thinks requests are http and leaves `Secure` off. Responses from this module add `Secure` to every cookie whenever `OIDC_PUBLIC_URL` is https |
+| Cached redirects | `Cache-Control: no-store`. Upstream's `Referrer-Policy: strict-origin-when-cross-origin` keeps the code and state from other sites |
+| Open redirect | Redirects only ever go to `OIDC_PUBLIC_URL`, with one of a fixed set of error codes |
+| Passwords | Refused for everyone but the non-admin service accounts, before the password is checked. Forgot-password mails and admin password resets still exist upstream, but a password set that way cannot be used while this is on |
+
+Every check above has a test, and each test was proved by switching that one check off and seeing the test fail.
+
+**What is trusted.** Keycloak and its TLS certificate; the server's clock (to 30 seconds); the people who can change
+the stack's `.env`, since they decide `OIDC_USERS`; and Keycloak's admins, since they assign `sub`s.
+
+**If Keycloak is down, nobody can sign in.** Sessions that are already open keep working. To get in anyway, empty
+`OIDC_ISSUER` and restart, which brings password sign-in back.
+
+**Recommended, outside this code:**
+* Set `TRUSTED_PROXIES` to the address Pangolin/Newt connects from (on dev the access log shows `172.16.13.1`, the
+  `knit-dev` network's gateway). Then upstream sees the real client address in its auth log and its password rate
+  limit, and marks its own cookies Secure. Check it is not also the address other LAN devices appear as before trusting it.
+* Keycloak clients: Standard flow only, confidential, PKCE S256 required, exact redirect URI (no wildcards). That is
+  how `knitting` and `knitting-dev` are set up.
+
+**Not done, on purpose:** signing out of the library does not sign out of Keycloak (Keycloak's own session decides
+whether "Sign in" asks for a password again). There is no back-channel logout from Keycloak.
 
 ## Status
 

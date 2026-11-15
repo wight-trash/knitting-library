@@ -153,7 +153,3 @@ export function getOidcConfig(options) {
 export function getOidcLinks(options) {
   return request('/auth/oidc/links', options);
 }
-
-export function unlinkOidc(username) {
-  return request(`/auth/oidc/links/${encodeURIComponent(username)}`, { method: 'DELETE' });
-}

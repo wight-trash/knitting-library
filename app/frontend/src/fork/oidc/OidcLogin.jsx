@@ -37,7 +37,7 @@ export default function OidcLogin() {
             className="login-btn"
             href="/api/auth/oidc/start"
             onClick={() => setGoing(true)}
-            style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
             aria-busy={going}
           >
             {going ? ft('oidcSigningIn') : cfg.label}

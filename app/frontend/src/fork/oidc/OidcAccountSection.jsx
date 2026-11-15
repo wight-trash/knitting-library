@@ -3,41 +3,34 @@
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, LogOut } from 'lucide-react';
 import { useApp } from '../../utils/AppContext';
-import { getOidcLinks, unlinkOidc } from '../forkApi';
+import { getOidcLinks } from '../forkApi';
 import { ft } from '../strings';
 import useOidcConfig from './useOidcConfig';
 
 function LinkedAccounts() {
   const [links, setLinks] = useState(null);
   const [error, setError] = useState('');
-  const load = () => getOidcLinks().then(setLinks).catch((e) => setError(e.message));
-  useEffect(() => { load(); }, []);
-
-  const unlink = async (name) => {
-    if (!window.confirm(ft('oidcUnlinkConfirm', { name }))) return;
-    try { await unlinkOidc(name); load(); } catch (e) { setError(e.message); }
-  };
+  useEffect(() => { getOidcLinks().then(setLinks).catch((e) => setError(e.message)); }, []);
 
   return (
     <>
       <h4 className="subsection-heading" style={{ marginTop: '2rem' }}>{ft('oidcLinksTitle')}</h4>
       <p className="settings-row-sub" style={{ margin: '0 0 12px' }}>{ft('oidcLinksText')}</p>
       {error && <p className="status-error">{error}</p>}
-      {links && links.length === 0 && <p className="settings-row-sub" style={{ margin: '0 0 12px' }}>{ft('oidcLinksNone')}</p>}
+      {links && links.length === 0 && <p className="settings-row-sub">{ft('oidcLinksNone')}</p>}
       {links && links.length > 0 && (
         <table className="fork-oidc-links" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr style={{ textAlign: 'left' }}>
-              <th>{ft('oidcLinksLibrary')}</th><th>{ft('oidcLinksKeycloak')}</th><th>{ft('oidcLinksLast')}</th><th />
+              <th>{ft('oidcLinksLibrary')}</th><th>{ft('oidcLinksKeycloak')}</th><th>{ft('oidcLinksLast')}</th>
             </tr>
           </thead>
           <tbody>
             {links.map((l) => (
-              <tr key={l.library_username}>
-                <td>{l.library_username}</td>
-                <td>{l.keycloak_username}</td>
+              <tr key={l.keycloak_user_id}>
+                <td>{l.library_username}{!l.exists && <span className="status-error"> ({ft('oidcLinksMissing')})</span>}</td>
+                <td><code style={{ fontSize: '0.8rem', wordBreak: 'break-all' }}>{l.keycloak_user_id}</code></td>
                 <td>{l.last_login ? new Date(`${l.last_login}Z`).toLocaleString() : ft('oidcLinksNever')}</td>
-                <td><button className="btn-secondary" onClick={() => unlink(l.library_username)}>{ft('oidcUnlink')}</button></td>
               </tr>
             ))}
           </tbody>
