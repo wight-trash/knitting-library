@@ -181,6 +181,7 @@
               "name",
               "quote",
               "page",
+              "values",
               "from_picture"
             ],
             "properties": {
@@ -200,6 +201,20 @@
                     "type": "null"
                   }
                 ]
+              },
+              "values": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "One value per size, in the order of sizes, copied exactly as written (numbers only, e.g. \"22.5\")"
               },
               "from_picture": {
                 "type": "boolean"

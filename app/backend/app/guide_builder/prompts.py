@@ -37,7 +37,10 @@ What to give:
   writes per-size values, e.g. "dash list", "a (b, c, d)", "a (b) c (d)", "(a, b, c) [d, e, f]", "a [b:c:d]".
 - choices: up to two choices besides size that change the instructions, e.g. yarn weight, colour version, left or
   right foot. Not alternative yarns that knit the same instructions.
-- size_guide: the finished measurements, if given: one row per measurement, with an exact quote holding the values.
+- size_guide: the finished measurements, if given: one row per measurement. quote: the row's text, word for word.
+  values: the row's value for EACH size, in the order of sizes, copied exactly as numbers (e.g. "22.5"). Read across
+  the row even when the table's text comes out of order or the table is a picture. If a value really is the same for
+  every size, repeat it for each size. null only for a one-size pattern.
 - yarns, needles, notions, gauge: from the materials. amount_quote must contain the per-size amounts exactly as written.
   strand_group: the same label for yarns held together. alternative_group: different labels for "or use" yarns.
 - abbreviations used (defined=false when the pattern uses one without explaining it), techniques (named explanations

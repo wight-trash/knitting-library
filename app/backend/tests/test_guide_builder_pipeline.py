@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from app.guide_builder import ai, schemas
@@ -301,3 +302,58 @@ class EndToEndTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------- size guide: one value per size, never one for all
+# A table as Canva stores it: the text runs size by size ("50 40" is size S), so the Length row's values are not next
+# to each other and no single quote can hold them.
+SIZE_LINES = LINES[:2] + ["SIZE GUIDE", "Length", "Width", "50 40", "54 44", "58 48"] + LINES[2:]
+
+
+class SizeGuideTests(unittest.TestCase):
+    def _build(self, rows, lines=SIZE_LINES):
+        import sys
+        outline = json.loads(json.dumps(OUTLINE))
+        outline["size_guide"] = {"kind": "table", "page": 1, "rows": rows}
+        with tempfile.TemporaryDirectory() as tmp, \
+                unittest.mock.patch.object(sys.modules[__name__], "OUTLINE", outline):
+            pdf = Path(tmp) / "hat.pdf"
+            pdf.write_bytes(tiny_pdf(lines))
+            res = build_guide(str(pdf), FakeClient(), workers=2)
+        self.assertEqual(schemas.problems(res.guide), [])
+        rows = {m["name"]: m["value"] for m in res.guide["size_guide"]["measurements"]}
+        doubts = [d["message"] for d in res.guide["doubts"] if d["origin"] == "code" and "Size guide" in d["message"]]
+        return rows, doubts
+
+    @staticmethod
+    def row(name, values, quote=None):
+        return {"name": name, "quote": quote or name, "page": 1, "values": values, "from_picture": False}
+
+    def test_values_read_across_a_scrambled_table(self):
+        rows, doubts = self._build([self.row("Length", ["50", "54", "58"]), self.row("Width", ["40", "44", "48"])])
+        self.assertEqual(rows["Length"]["by_size"], ["50", "54", "58"])
+        self.assertEqual(rows["Width"]["by_size"], ["40", "44", "48"])
+        self.assertIsNone(rows["Length"]["all"])
+        self.assertEqual(doubts, [])
+
+    def test_one_number_is_never_spread_over_every_size(self):
+        rows, doubts = self._build([self.row("Length", None, quote="Length")])
+        self.assertIsNone(rows["Length"]["all"])
+        self.assertIsNone(rows["Length"]["by_size"])
+        self.assertTrue(any("Length" in d and "only one value" in d for d in doubts), doubts)
+
+    def test_invented_or_miscounted_values_are_refused(self):
+        rows, doubts = self._build([self.row("Length", ["50", "54", "99"]), self.row("Width", ["40", "44"])])
+        self.assertIsNone(rows["Length"]["by_size"])
+        self.assertIsNone(rows["Width"]["by_size"])
+        self.assertTrue(any("99" in d for d in doubts), doubts)
+        self.assertTrue(any("2 values were read for 3 sizes" in d for d in doubts), doubts)
+
+    def test_a_quote_in_reading_order_still_wins_and_disagreement_is_flagged(self):
+        lines = LINES[:2] + ["Length 50-54-58 cm"] + LINES[2:]
+        rows, doubts = self._build([self.row("Length", ["50", "54", "58"], quote="Length 50-54-58 cm")], lines)
+        self.assertEqual(rows["Length"]["by_size"], ["50", "54", "58"])
+        self.assertEqual(rows["Length"]["unit"], "cm")
+        self.assertEqual(doubts, [])
+        rows, doubts = self._build([self.row("Length", ["50", "56", "58"], quote="Length 50-54-58 cm")], lines)
+        self.assertTrue(any("two ways" in d for d in doubts), doubts)

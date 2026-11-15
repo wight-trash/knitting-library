@@ -161,6 +161,20 @@ def _source(page, quote: str, picture: bool) -> dict:
     return {"page": page, "quote": (quote or "")[:300], "from_picture": bool(picture)}
 
 
+def _num(value: str) -> str:
+    """A value compared as a number: "22,5" and "22.5" are the same."""
+    return str(value).strip().replace(",", ".")
+
+
+def _number_in(value: str, text: str) -> bool:
+    """Whether `value` (a number, a fraction like "8 ½", or a range) is written in `text` as a number of its own."""
+    v = str(value).strip()
+    if not v:
+        return False
+    pattern = re.escape(v.replace(",", ".")).replace(r"\.", "[.,]").replace(r"\ ", r"\s*")
+    return re.search(rf"(?<![\d.,]){pattern}(?![\d]|[.,]\d)", text) is not None
+
+
 def _not_given(text: str = "") -> dict:
     return {"text": text, "unit": None, "all": None, "by_size": None, "by_choice": None, "from_picture": False, "alt": None}
 
@@ -493,8 +507,7 @@ class Builder:
             runs = sizes.find_runs(src, n, notation=notation, size_labels=labels)
             pic = (_inside_picture(self.full_text, loc[0]) if loc else bool(row.get("from_picture"))) or \
                 (row.get("page") in self.picture_pages)
-            value = sizes.to_sized_value(runs[0] if runs else None, n, text=src, from_picture=pic) if runs else \
-                sizes.quantity(src, n, notation=notation, size_labels=labels, from_picture=pic) or _not_given(src)
+            value = self._size_guide_value(row, src, runs, n, notation, labels, pic)
             self._check_runs(runs, f"size guide: {row['name']}")
             size_guide_rows.append({"name": row["name"], "value": value, "source": _source(row.get("page"), src, pic)})
         sg = o.get("size_guide") or {}
@@ -770,6 +783,49 @@ class Builder:
         if len(keep) == len(size_ids) or not keep:
             return None
         return {"sizes": keep, "choices": None, "except": []}
+
+    def _page_text(self, page) -> str:
+        """The text of one page (with its picture transcriptions), or the whole pattern if the page is unknown."""
+        if isinstance(page, int):
+            m = re.search(rf"=== Page {page} ===(.*?)(?==== Page \d+ ===|\Z)", self.full_text, re.S)
+            if m:
+                return m.group(1)
+        return self.full_text
+
+    def _size_guide_value(self, row, src, runs, n, notation, labels, pic) -> dict:
+        """One size-guide measurement as a per-size value.
+
+        1. The quote holds one value per size (a dash list, a table row in reading order): use those.
+        2. Otherwise the model's `values` (read across a table whose text is out of order, as Canva PDFs store it, or
+           from a picture), but only when there is one per size and every one of them is on the row's page.
+        3. Otherwise, in a pattern with several sizes, the measurement is "not given" and the knitter is asked to
+           check it. One number is never spread over every size: that showed one length for all ten slipper sizes."""
+        name = row.get("name") or "measurement"
+        values = [str(v).strip() for v in (row.get("values") or []) if str(v).strip()]
+        if runs:
+            value = sizes.to_sized_value(runs[0], n, text=src, from_picture=pic)
+            if values and len(values) == n and value.get("by_size") and \
+                    [_num(v) for v in values] != [_num(v) for v in value["by_size"]]:
+                self._doubt("other", f"Size guide, {name}: the table can be read two ways "
+                                     f"({', '.join(value['by_size'])} or {', '.join(values)}). Check it in the pattern.")
+            return value
+        if n <= 1:
+            return sizes.quantity(src, n, notation=notation, size_labels=labels, from_picture=pic) or _not_given(src)
+        page = self._page_text(row.get("page"))
+        if len(values) == n and all(_number_in(v, page) or _number_in(v, self.full_text) for v in values):
+            single = sizes.quantity(src, 1, notation=notation, from_picture=pic) or {}
+            return {"text": src, "unit": single.get("unit"), "all": None, "by_size": values, "by_choice": None,
+                    "from_picture": bool(pic), "alt": None}
+        if values and len(values) != n:
+            why = f"{len(values)} values were read for {n} sizes"
+        elif values:
+            missing = [v for v in values if not (_number_in(v, page) or _number_in(v, self.full_text))]
+            why = f"{', '.join(missing[:4])} could not be found in the pattern"
+        else:
+            why = "only one value could be read for all the sizes"
+        self._doubt("list_length", f"Size guide, {name}: {why}. Check the measurements in the pattern"
+                                   f"{' on page ' + str(row['page']) if isinstance(row.get('page'), int) else ''}.")
+        return _not_given(src)
 
     def _check_runs(self, runs, where: str, step_id: str | None = None) -> None:
         for r in runs:

@@ -252,6 +252,8 @@ outline = schema(
          "choices": arr(obj({"name": s(), "values": arr(s())}), "At most two choices besides size"),
          "size_guide": obj({"kind": s(enum=["table", "image", "both", "list", "none"]), "page": opt(i()),
                             "rows": arr(obj({"name": s(), "quote": s(QUOTE), "page": opt(i()),
+                                             "values": opt(arr(s()), "One value per size, in the order of sizes, "
+                                                           "copied exactly as written (numbers only, e.g. \"22.5\")"),
                                              "from_picture": b()}))}),
          "yarns": arr(obj({"name": s(), "weight": opt(s()), "fibre": opt(s()), "ball": opt(s()), "colour": opt(s()),
                            "strand_group": opt(s()), "alternative_group": opt(s()), "alternatives_text": opt(s()),
